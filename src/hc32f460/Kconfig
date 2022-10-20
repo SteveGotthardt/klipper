@@ -75,7 +75,7 @@ config STACK_SIZE
 
 config CLOCK_FREQ
     int
-    default 16000000
+    default 160000000
 
 config MCU
     string
