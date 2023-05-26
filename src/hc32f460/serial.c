@@ -49,6 +49,13 @@
   #define USART_RX_PIN    (Pin07)
   #define USART_TX_PORT   (PortA)
   #define USART_TX_PIN    (Pin08)
+
+#elif CONFIG_HC32F460_SERIAL_PA13_PA14
+  DECL_CONSTANT_STR("RESERVE_PINS_serial", "PA13,PA14");
+  #define USART_RX_PORT   (PortA)
+  #define USART_RX_PIN    (Pin13)
+  #define USART_TX_PORT   (PortA)
+  #define USART_TX_PIN    (Pin14)
 #endif
 
 // use USART 1 for serial connection
