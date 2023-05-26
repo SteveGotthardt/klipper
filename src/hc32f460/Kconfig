@@ -47,6 +47,7 @@ config FLASH_SIZE
     default 0x40000
 
 config FLASH_APPLICATION_ADDRESS
+    hex
     default 0x8000  # Aquila is 0xC000
 
 config FLASH_BOOT_ADDRESS
@@ -66,11 +67,9 @@ config STACK_SIZE
     int
     default 1024
 
-
 config CLOCK_FREQ
     int
-    default 200000000   # Voxelab uses 168000000
-
+    default 168000000   # anycube uses 200000000
 
 config MCU
     string
