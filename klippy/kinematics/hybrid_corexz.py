@@ -11,7 +11,6 @@ from . import idex_modes
 class HybridCoreXZKinematics:
     def __init__(self, toolhead, config):
         self.printer = config.get_printer()
-        printer_config = config.getsection('printer')
         # itersolve parameters
         self.rails = [ stepper.PrinterRail(config.getsection('stepper_x')),
                        stepper.LookupMultiRail(config.getsection('stepper_y')),
@@ -28,7 +27,7 @@ class HybridCoreXZKinematics:
         if config.has_section('dual_carriage'):
             dc_config = config.getsection('dual_carriage')
             # dummy for cartesian config users
-            dc_config.getchoice('axis', {'x': 'x'}, default='x')
+            dc_config.getchoice('axis', ['x'], default='x')
             # setup second dual carriage rail
             self.rails.append(stepper.PrinterRail(dc_config))
             self.rails[2].get_endstops()[0][0].add_stepper(
@@ -58,7 +57,7 @@ class HybridCoreXZKinematics:
         pos = [stepper_positions[rail.get_name()] for rail in self.rails]
         if (self.dc_module is not None and 'PRIMARY' == \
                     self.dc_module.get_status()['carriage_1']):
-            return [pos[0] - pos[2], pos[1], pos[2]]
+            return [pos[3] - pos[2], pos[1], pos[2]]
         else:
             return [pos[0] + pos[2], pos[1], pos[2]]
     def update_limits(self, i, range):
@@ -67,16 +66,19 @@ class HybridCoreXZKinematics:
         # otherwise leave in un-homed state.
         if l <= h:
             self.limits[i] = range
-    def override_rail(self, i, rail):
-        self.rails[i] = rail
     def set_position(self, newpos, homing_axes):
         for i, rail in enumerate(self.rails):
             rail.set_position(newpos)
-            if i in homing_axes:
-                self.limits[i] = rail.get_range()
-    def note_z_not_homed(self):
-        # Helper for Safe Z Home
-        self.limits[2] = (1.0, -1.0)
+        for axis in homing_axes:
+            if self.dc_module and axis == self.dc_module.axis:
+                rail = self.dc_module.get_primary_rail().get_rail()
+            else:
+                rail = self.rails[axis]
+            self.limits[axis] = rail.get_range()
+    def clear_homing_state(self, axes):
+        for i, _ in enumerate(self.limits):
+            if i in axes:
+                self.limits[i] = (1.0, -1.0)
     def home_axis(self, homing_state, axis, rail):
         position_min, position_max = rail.get_range()
         hi = rail.get_homing_info()
@@ -96,7 +98,7 @@ class HybridCoreXZKinematics:
             else:
                 self.home_axis(homing_state, axis, self.rails[axis])
     def _motor_off(self, print_time):
-        self.limits = [(1.0, -1.0)] * 3
+        self.clear_homing_state((0, 1, 2))
     def _check_endstops(self, move):
         end_pos = move.end_pos
         for i in (0, 1, 2):
