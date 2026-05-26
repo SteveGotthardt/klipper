@@ -1,24 +1,26 @@
 # Measuring Resonances
 
-Klipper has built-in support for the ADXL345, MPU-9250 and LIS2DW compatible
+Klipper has built-in support for the ADXL345, MPU-9250, LIS2DW and LIS3DH compatible
 accelerometers which can be used to measure resonance frequencies of the printer
 for different axes, and auto-tune [input shapers](Resonance_Compensation.md) to
 compensate for resonances. Note that using accelerometers requires some
-soldering and crimping. The ADXL345/LIS2DW can be connected to the SPI interface
+soldering and crimping. The ADXL345 can be connected to the SPI interface
 of a Raspberry Pi or MCU board (it needs to be reasonably fast). The MPU family can
 be connected to the I2C interface of a Raspberry Pi directly, or to an I2C
-interface of an MCU board that supports 400kbit/s *fast mode* in Klipper.
+interface of an MCU board that supports 400kbit/s *fast mode* in Klipper. The
+LIS2DW and LIS3DH can be connected to either SPI or I2C with the same considerations
+as above.
 
 When sourcing accelerometers, be aware that there are a variety of different PCB
 board designs and different clones of them. If it is going to be connected to a
 5V printer MCU ensure it has a voltage regulator and level shifters.
 
-For ADXL345s/LIS2DWs, make sure that the board supports SPI mode (a small number of
+For ADXL345s, make sure that the board supports SPI mode (a small number of
 boards appear to be hard-configured for I2C by pulling SDO to GND).
 
-For MPU-9250/MPU-9255/MPU-6515/MPU-6050/MPU-6500s there are also a variety of
-board designs and clones with different I2C pull-up resistors which will need
-supplementing.
+For MPU-9250/MPU-9255/MPU-6515/MPU-6050/MPU-6500/ICM20948s and LIS2DW/LIS3DH there
+are also a variety of board designs and clones with different I2C pull-up resistors
+which will need supplementing.
 
 ## MCUs with Klipper I2C *fast-mode* Support
 
@@ -27,6 +29,7 @@ supplementing.
 | Raspberry Pi | 3B+, Pico | 3A, 3A+, 3B, 4 |
 | AVR ATmega | ATmega328p | ATmega32u4, ATmega128, ATmega168, ATmega328, ATmega644p, ATmega1280, ATmega1284, ATmega2560 |
 | AVR AT90 | - | AT90usb646, AT90usb1286 |
+| SAMD | SAMC21G18 | SAMC21G18, SAMD21G18, SAMD21E18, SAMD21J18, SAMD21E15, SAMD51G19, SAMD51J19, SAMD51N19, SAMD51P20, SAME51J19, SAME51N19, SAME54P20 |
 
 ## Installation instructions
 
@@ -133,7 +136,7 @@ GND+SCL
 
 Note that unlike a cable shield, any GND(s) should be connected at both ends.
 
-#### MPU-9250/MPU-9255/MPU-6515/MPU-6050/MPU-6500
+#### MPU-9250/MPU-9255/MPU-6515/MPU-6050/MPU-6500/ICM20948
 
 These accelerometers have been tested to work over I2C on the RPi, RP2040 (Pico)
 and AVR at 400kbit/s (*fast mode*). Some MPU accelerometer modules include
@@ -149,7 +152,7 @@ Recommended connection scheme for I2C on the Raspberry Pi:
 | SDA | 03 | GPIO02 (SDA1) |
 | SCL | 05 | GPIO03 (SCL1) |
 
-The RPi has buit-in 1.8K pull-ups on both SCL and SDA.
+The RPi has built-in 1.8K pull-ups on both SCL and SDA.
 
 ![MPU-9250 connected to Pi](img/mpu9250-PI-fritzing.png)
 
@@ -207,17 +210,25 @@ software dependencies not installed by default. First, run on your Raspberry Pi
 the following commands:
 ```
 sudo apt update
-sudo apt install python3-numpy python3-matplotlib libatlas-base-dev
+sudo apt install python3-numpy python3-matplotlib libatlas-base-dev libopenblas-dev
 ```
 
 Next, in order to install NumPy in the Klipper environment, run the command:
 ```
-~/klippy-env/bin/pip install -v numpy
+~/klippy-env/bin/pip install -v "numpy<1.26"
 ```
 Note that, depending on the performance of the CPU, it may take *a lot*
 of time, up to 10-20 minutes. Be patient and wait for the completion of
 the installation. On some occasions, if the board has too little RAM
-the installation may fail and you will need to enable swap.
+the installation may fail and you will need to enable swap. Also note
+the forced version, due to newer versions of NumPY having requirements
+that may not be satisfied in some klipper python environments.
+
+Once installed please check that no errors show from the command:
+```
+~/klippy-env/bin/python -c 'import numpy;'
+```
+The correct output should simply be a new line.
 
 #### Configure ADXL345 With RPi
 
@@ -305,7 +316,7 @@ you'll also want to modify your `printer.cfg` file to include this:
 
 Restart Klipper via the `RESTART` command.
 
-#### Configure LIS2DW series
+#### Configure LIS2DW series over SPI
 
 ```
 [mcu lis]
@@ -344,6 +355,7 @@ accel_chip: mpu9250
 probe_points:
     100, 100, 20  # an example
 ```
+If you are using the ICM20948, replace instances of "mpu9250" with "icm20948".
 
 #### Configure MPU-9520 Compatibles With Pico
 
@@ -366,6 +378,7 @@ probe_points:
 [static_digital_output pico_3V3pwm] # Improve power stability
 pins: pico:gpio23
 ```
+If you are using the ICM20948, replace instances of "mpu9250" with "icm20948".
 
 #### Configure MPU-9520 Compatibles with AVR
 
@@ -384,6 +397,7 @@ accel_chip: mpu9250
 probe_points:
     100, 100, 20  # an example
 ```
+If you are using the ICM20948, replace instances of "mpu9250" with "icm20948".
 
 Restart Klipper via the `RESTART` command.
 
@@ -450,7 +464,11 @@ TEST_RESONANCES AXIS=Y
 ```
 This will generate 2 CSV files (`/tmp/resonances_x_*.csv` and
 `/tmp/resonances_y_*.csv`). These files can be processed with the stand-alone
-script on a Raspberry Pi. To do that, run the following commands:
+script on a Raspberry Pi. This script is intended to be run with a single CSV
+file for each axis measured, although it can be used with multiple CSV files
+if you desire to average the results. Averaging results can be useful, for
+example, if resonance tests were done at multiple test points. Delete the extra
+CSV files if you do not desire to average them.
 ```
 ~/klipper/scripts/calibrate_shaper.py /tmp/resonances_x_*.csv -o /tmp/shaper_calibrate_x.png
 ~/klipper/scripts/calibrate_shaper.py /tmp/resonances_y_*.csv -o /tmp/shaper_calibrate_y.png
@@ -662,9 +680,129 @@ The same notice applies to the input shaper
 `max_accel` value after the auto-calibration, and the suggested acceleration
 limits will not be applied automatically.
 
+Keep in mind that the maximum acceleration without too much smoothing depends
+on the `square_corner_velocity`. The general recommendation is not to change
+it from its default value 5.0, and this is the value used by default by the
+`calibrate_shaper.py` script. If you did change it though, you should inform
+the script about it by passing `--square_corner_velocity=...` parameter, e.g.
+```
+~/klipper/scripts/calibrate_shaper.py /tmp/resonances_x_*.csv -o /tmp/shaper_calibrate_x.png --square_corner_velocity=10.0
+```
+so that it can calculate the maximum acceleration recommendations correctly.
+Note that the `SHAPER_CALIBRATE` command already takes the configured
+`square_corner_velocity` parameter into account, and there is no need
+to specify it explicitly.
+
 If you are doing a shaper re-calibration and the reported smoothing for the
 suggested shaper configuration is almost the same as what you got during the
 previous calibration, this step can be skipped.
+
+### Measuring the resonances of Z axis
+
+Measuring the resonances of Z axis is similar in many aspects to measuring
+resonances of X and Y axes, with some subtle differences. Similarly to other
+axes measurements, you will need to have an accelerometer mounted on the
+moving parts of Z axis - either the bed itself (if the bed moves over Z axis),
+or the toolhead (if the toolhead/gantry moves over Z). You will need to
+add the appropriate chip configuration to `printer.cfg` and also add it to
+`[resonance_tester]` section, e.g.
+```
+[resonance_tester]
+accel_chip_z: <accelerometer full name>
+```
+Also make sure that `probe_points` configured in `[resonance_tester]` allow
+sufficient clearance for Z axis movements (20 mm above bed surface should
+provide enough clearance with the default test parameters).
+
+The next consideration is that Z axis can typically reach lower maximum
+speeds and accelerations that X and Y axes. Default parameters of the test
+take that into consideration and are much less agressive, but it may still
+be necessary to increase `max_z_accel` and `max_z_velocity`. If you have
+them configured in `[printer]` section, make sure to set them to at least
+```
+[printer]
+max_z_velocity: 20
+max_z_accel: 1550
+```
+but only for the duration of the test, afterwards you can revert them back
+to their original values if necessary. And if you use custom test parameters
+for Z axis, `TEST_RESONANCES` and `SHAPER_CALIBRATE` will provide the minimum
+required limits if necessary for your specific case.
+
+After all changes to `printer.cfg` have been made, restart Klipper and run
+either
+```
+TEST_RESONANCES AXIS=Z
+```
+or
+```
+SHAPER_CALIBRATE AXIS=Z
+```
+and proceed from there accordingly how you would for other axes.
+For example, after `TEST_RESONANCES` command you can run
+`calibrate_shaper.py` script and get shaper recommendations and
+the chart of resonance response:
+
+![Resonances](img/calibrate-z.png)
+
+After the calibration, the shaper parameters can be stored in the
+`printer.cfg`, e.g. from the example above:
+```
+[input_shaper]
+...
+shaper_type_z: mzv
+shaper_freq_z: 42.6
+```
+
+Also, given the movements of Z axis are slow, you can easily consider
+more aggressive input shapers, e.g.
+```
+[input_shaper]
+...
+shaper_type_z: 2hump_ei
+shaper_freq_z: 63.0
+```
+
+If the test produces bogus results, you may try to increase
+`accel_per_hz_z` parameter in `[resonance_tester]` from its
+default value 15 to a larger value in the range of 20-30, e.g.
+```
+[resonance_tester]
+accel_per_hz_z: 25
+```
+and repeat the test. Increasing this value will likely require
+increasing `max_z_accel` and `max_z_velocity` parameters as well.
+You can run `TEST_RESONANCES AXIS=Z` command to get the required
+minimum values.
+
+However, if you are unable to measure the resonances of Z axis,
+you can consider just using
+```
+[input_shaper]
+...
+shaper_type_z: 3hump_ei
+shaper_freq_z: 65
+```
+as an acceptable all-round choice, given that the smoothing of
+Z axis movements is not of particular concerns.
+
+### Unreliable measurements of resonance frequencies
+
+Sometimes the resonance measurements can produce bogus results, leading to
+the incorrect suggestions for the input shapers. This can be caused by a
+variety of reasons, including running fans on the toolhead, incorrect
+position or non-rigid mounting of the accelerometer, or mechanical problems
+such as loose belts or binding or bumpy axis. Keep in mind that all fans
+should be disabled for resonance testing, especially the noisy ones, and
+that the accelerometer should be rigidly mounted on the corresponding
+moving part (e.g. on the bed itself for the bed slinger, or on the extruder
+of the printer itself and not the carriage, and some people get better
+results by mounting the accelerometer on the nozzle itself). As for
+mechanical problems, the user should inspect if there is any fault that
+can be fixed with a moving axis (e.g. linear guide rails cleaned up and
+lubricated and V-slot wheels tension adjusted correctly). If none of that
+helps, a user may try the other shapers from the produced list besides the
+one recommended by default.
 
 ### Testing custom axes
 

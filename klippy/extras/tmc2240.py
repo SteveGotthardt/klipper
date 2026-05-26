@@ -58,8 +58,9 @@ Registers = {
 ReadRegisters = [
     "GCONF", "GSTAT", "IOIN", "DRV_CONF", "GLOBALSCALER", "IHOLD_IRUN",
     "TPOWERDOWN", "TSTEP", "TPWMTHRS", "TCOOLTHRS", "THIGH", "ADC_VSUPPLY_AIN",
-    "ADC_TEMP", "MSCNT", "MSCURACT", "CHOPCONF", "COOLCONF", "DRV_STATUS",
-    "PWMCONF", "PWM_SCALE", "PWM_AUTO", "SG4_THRS", "SG4_RESULT", "SG4_IND"
+    "ADC_TEMP", "OTW_OV_VTH", "MSCNT", "MSCURACT", "CHOPCONF", "COOLCONF",
+    "DRV_STATUS", "PWMCONF", "PWM_SCALE", "PWM_AUTO", "SG4_THRS", "SG4_RESULT",
+    "SG4_IND"
 ]
 
 Fields = {}
@@ -95,7 +96,7 @@ Fields["DRV_STATUS"] = {
     "s2vsb":                    0x01 << 13,
     "stealth":                  0x01 << 14,
     "fsactive":                 0x01 << 15,
-    "csactual":                 0x1F << 16,
+    "cs_actual":                0x1F << 16,
     "stallguard":               0x01 << 24,
     "ot":                       0x01 << 25,
     "otpw":                     0x01 << 26,
@@ -259,6 +260,11 @@ FieldFormatters.update({
     "s2vsa":            (lambda v: "1(ShortToSupply_A!)" if v else ""),
     "s2vsb":            (lambda v: "1(ShortToSupply_B!)" if v else ""),
     "adc_temp":         (lambda v: "0x%04x(%.1fC)" % (v, ((v - 2038) / 7.7))),
+    "adc_vsupply":      (lambda v: "0x%04x(%.3fV)" % (v, v * 0.009732)),
+    "adc_ain":          (lambda v: "0x%04x(%.3fmV)" % (v, v * 0.3052)),
+    "overvoltage_vth":  (lambda v: "0x%04x(%.3fV)" % (v, v * 0.009732)),
+    "overtempprewarning_vth": (lambda v:
+                               "0x%04x(%.1fC)" % (v, ((v - 2038) / 7.7))),
 })
 
 
@@ -346,7 +352,7 @@ class TMC2240:
         if config.get("uart_pin", None) is not None:
             # use UART for communication
             self.mcu_tmc = tmc_uart.MCU_TMC_uart(config, Registers, self.fields,
-                                                 3, TMC_FREQUENCY)
+                                                 7, TMC_FREQUENCY)
         else:
             # Use SPI bus for communication
             self.mcu_tmc = tmc2130.MCU_TMC_SPI(config, Registers, self.fields,
@@ -362,7 +368,10 @@ class TMC2240:
         # Setup basic register values
         tmc.TMCWaveTableHelper(config, self.mcu_tmc)
         self.fields.set_config_field(config, "offset_sin90", 0)
-        tmc.TMCStealthchopHelper(config, self.mcu_tmc, TMC_FREQUENCY)
+        tmc.TMCStealthchopHelper(config, self.mcu_tmc)
+        tmc.TMCVcoolthrsHelper(config, self.mcu_tmc)
+        tmc.TMCVhighHelper(config, self.mcu_tmc)
+        # Allow other registers to be set from the config
         set_config_field = self.fields.set_config_field
         #   GCONF
         set_config_field(config, "multistep_filt", True)
@@ -402,7 +411,10 @@ class TMC2240:
         #   TPOWERDOWN
         set_config_field(config, "tpowerdown", 10)
         #   SG4_THRS
+        set_config_field(config, "sg4_thrs", 0)
         set_config_field(config, "sg4_angle_offset", 1)
+        #   DRV_CONF
+        set_config_field(config, "slope_control", 0)
 
 def load_config_prefix(config):
     return TMC2240(config)

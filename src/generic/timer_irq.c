@@ -30,7 +30,6 @@ timer_is_before(uint32_t time1, uint32_t time2)
 }
 
 static uint32_t timer_repeat_until;
-#define TIMER_IDLE_REPEAT_TICKS timer_from_us(500)
 #define TIMER_REPEAT_TICKS timer_from_us(100)
 
 #define TIMER_MIN_TRY_TICKS timer_from_us(2)
@@ -55,11 +54,11 @@ timer_dispatch_many(void)
             // Check if there are too many repeat timers
             if (diff < (int32_t)(-timer_from_us(1000)))
                 try_shutdown("Rescheduled timer in the past");
-            if (sched_tasks_busy()) {
+            if (sched_check_set_tasks_busy()) {
                 timer_repeat_until = now + TIMER_REPEAT_TICKS;
                 return now + TIMER_DEFER_REPEAT_TICKS;
             }
-            timer_repeat_until = tru = now + TIMER_IDLE_REPEAT_TICKS;
+            timer_repeat_until = tru = now + TIMER_REPEAT_TICKS;
         }
 
         // Next timer in the past or near future - wait for it to be ready

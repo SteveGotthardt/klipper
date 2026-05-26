@@ -1,17 +1,21 @@
 # Virtual sdcard support (print files directly from a host g-code file)
 #
-# Copyright (C) 2018  Kevin O'Connor <kevin@koconnor.net>
+# Copyright (C) 2018-2024  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import os, logging, io
+import os, sys, logging, io
 
 VALID_GCODE_EXTS = ['gcode', 'g', 'gco']
+
+DEFAULT_ERROR_GCODE = """
+{% if 'heaters' in printer %}
+   TURN_OFF_HEATERS
+{% endif %}
+"""
 
 class VirtualSD:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.printer.register_event_handler("klippy:shutdown",
-                                            self.handle_shutdown)
         # sdcard state
         sd = config.get('path')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
@@ -27,7 +31,7 @@ class VirtualSD:
         # Error handling
         gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.on_error_gcode = gcode_macro.load_template(
-            config, 'on_error_gcode', '')
+            config, 'on_error_gcode', DEFAULT_ERROR_GCODE)
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
         for cmd in ['M20', 'M21', 'M23', 'M24', 'M25', 'M26', 'M27']:
@@ -40,7 +44,9 @@ class VirtualSD:
         self.gcode.register_command(
             "SDCARD_PRINT_FILE", self.cmd_SDCARD_PRINT_FILE,
             desc=self.cmd_SDCARD_PRINT_FILE_help)
-    def handle_shutdown(self):
+        self.printer.register_event_handler("klippy:analyze_shutdown",
+                                            self._handle_analyze_shutdown)
+    def _handle_analyze_shutdown(self, msg, details):
         if self.work_timer is not None:
             self.must_pause_work = True
             try:
@@ -253,12 +259,15 @@ class VirtualSD:
                 continue
             # Pause if any other request is pending in the gcode class
             if gcode_mutex.test():
-                self.reactor.pause(self.reactor.monotonic() + 0.100)
+                self.reactor.pause(self.reactor.monotonic() + 0.050)
                 continue
             # Dispatch command
             self.cmd_from_sd = True
             line = lines.pop()
-            next_file_position = self.file_position + len(line) + 1
+            if sys.version_info.major >= 3:
+                next_file_position = self.file_position + len(line.encode()) + 1
+            else:
+                next_file_position = self.file_position + len(line) + 1
             self.next_file_position = next_file_position
             try:
                 self.gcode.run_script(line)

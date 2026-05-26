@@ -21,7 +21,7 @@ or by issuing a `SET_SKEW CLEAR=1` gcode.
 
 ## Take your measurements
 
-The `[skew_correcton]` module requires 3 measurements for each plane you want
+The `[skew_correction]` module requires 3 measurements for each plane you want
 to correct; the length from Corner A to Corner C, the length from Corner B
 to Corner D, and the length from Corner A to Corner D.  When measuring length
 AD do not include the flats on the corners that some test objects provide.
@@ -31,7 +31,7 @@ AD do not include the flats on the corners that some test objects provide.
 ## Configure your skew
 
 Make sure `[skew_correction]` is in printer.cfg.  You may now use the `SET_SKEW`
-gcode to configure skew_correcton.  For example, if your measured lengths
+gcode to configure skew_correction.  For example, if your measured lengths
 along XY are as follows:
 
 ```

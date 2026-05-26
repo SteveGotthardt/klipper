@@ -1,11 +1,12 @@
 // FDCAN support on stm32 chips
 //
-// Copyright (C) 2021-2022  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2021-2025  Kevin O'Connor <kevin@koconnor.net>
 // Copyright (C) 2019 Eug Krashtan <eug.krashtan@gmail.com>
 // Copyright (C) 2020 Pontus Borg <glpontus@gmail.com>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
+#include "board/irq.h" // irq_save
 #include "command.h" // DECL_CONSTANT_STR
 #include "generic/armcm_boot.h" // armcm_enable_irq
 #include "generic/canbus.h" // canbus_notify_tx
@@ -54,22 +55,33 @@
  DECL_CONSTANT_STR("RESERVE_PINS_CAN", "PB12,PB13");
  #define GPIO_Rx GPIO('B', 12)
  #define GPIO_Tx GPIO('B', 13)
+#elif CONFIG_STM32_CANBUS_PH13_PH14
+ DECL_CONSTANT_STR("RESERVE_PINS_CAN", "PH14,PH13");
+ #define GPIO_Rx GPIO('H', 14)
+ #define GPIO_Tx GPIO('H', 13)
 #endif
 
 #if !(CONFIG_STM32_CANBUS_PB0_PB1 || CONFIG_STM32_CANBUS_PC2_PC3 \
      || CONFIG_STM32_CANBUS_PB5_PB6 ||CONFIG_STM32_CANBUS_PB12_PB13)
  #define SOC_CAN FDCAN1
  #define MSG_RAM (((struct fdcan_ram_layout*)SRAMCAN_BASE)->fdcan1)
+ #if CONFIG_MACH_STM32H7 || CONFIG_MACH_STM32G4
+  #define CAN_IT0_IRQn  FDCAN1_IT0_IRQn
+ #endif
 #else
  #define SOC_CAN FDCAN2
  #define MSG_RAM (((struct fdcan_ram_layout*)SRAMCAN_BASE)->fdcan2)
+ #if CONFIG_MACH_STM32H7 || CONFIG_MACH_STM32G4
+  #define CAN_IT0_IRQn  FDCAN2_IT0_IRQn
+ #endif
 #endif
 
 #if CONFIG_MACH_STM32G0
  #define CAN_IT0_IRQn  TIM16_FDCAN_IT0_IRQn
  #define CAN_FUNCTION  GPIO_FUNCTION(3) // Alternative function mapping number
-#elif CONFIG_MACH_STM32H7 || CONFIG_MACH_STM32G4
- #define CAN_IT0_IRQn  FDCAN1_IT0_IRQn
+#endif
+
+#if CONFIG_MACH_STM32H7 || CONFIG_MACH_STM32G4
  #define CAN_FUNCTION  GPIO_FUNCTION(9) // Alternative function mapping number
 #endif
 
@@ -162,10 +174,10 @@ canhw_set_filter(uint32_t id)
     can_filter(1, id);
     can_filter(2, id + 1);
 
-#if CONFIG_MACH_STM32G0
+#if CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
     SOC_CAN->RXGFC = ((id ? 3 : 1) << FDCAN_RXGFC_LSS_Pos
                       | 0x02 << FDCAN_RXGFC_ANFS_Pos);
-#elif CONFIG_MACH_STM32H7 || CONFIG_MAC_STM32G4
+#elif CONFIG_MACH_STM32H7
     uint32_t flssa = (uint32_t)MSG_RAM.FLS - SRAMCAN_BASE;
     SOC_CAN->SIDFC = flssa | ((id ? 3 : 1) << FDCAN_SIDFC_LSS_Pos);
     SOC_CAN->GFC = 0x02 << FDCAN_GFC_ANFS_Pos;
@@ -175,6 +187,38 @@ canhw_set_filter(uint32_t id)
     barrier();
     SOC_CAN->CCCR &= ~FDCAN_CCCR_CCE;
     SOC_CAN->CCCR &= ~FDCAN_CCCR_INIT;
+}
+
+static struct {
+    uint32_t rx_error, tx_error;
+} CAN_Errors;
+
+// Report interface status
+void
+canhw_get_status(struct canbus_status *status)
+{
+    irqstatus_t flag = irq_save();
+    uint32_t psr = SOC_CAN->PSR, lec = psr & FDCAN_PSR_LEC_Msk;
+    if (lec && lec != 7) {
+        // Reading PSR clears it - so update state here
+        if (lec >= 3 && lec <= 5)
+            CAN_Errors.tx_error += 1;
+        else
+            CAN_Errors.rx_error += 1;
+    }
+    uint32_t rx_error = CAN_Errors.rx_error, tx_error = CAN_Errors.tx_error;
+    irq_restore(flag);
+
+    status->rx_error = rx_error;
+    status->tx_error = tx_error;
+    if (psr & FDCAN_PSR_BO)
+        status->bus_state = CANBUS_STATE_OFF;
+    else if (psr & FDCAN_PSR_EP)
+        status->bus_state = CANBUS_STATE_PASSIVE;
+    else if (psr & FDCAN_PSR_EW)
+        status->bus_state = CANBUS_STATE_WARN;
+    else
+        status->bus_state = 0;
 }
 
 // This function handles CAN global interrupts
@@ -212,6 +256,18 @@ CAN_IRQHandler(void)
         // Tx
         SOC_CAN->IR = FDCAN_IE_TC;
         canbus_notify_tx();
+    }
+    if (ir & (FDCAN_IR_PED | FDCAN_IR_PEA)) {
+        // Bus error
+        uint32_t psr = SOC_CAN->PSR;
+        SOC_CAN->IR = FDCAN_IR_PED | FDCAN_IR_PEA;
+        uint32_t lec = psr & FDCAN_PSR_LEC_Msk;
+        if (lec && lec != 7) {
+            if (lec >= 3 && lec <= 5)
+                CAN_Errors.tx_error += 1;
+            else
+                CAN_Errors.rx_error += 1;
+        }
     }
 }
 
@@ -293,7 +349,7 @@ can_init(void)
 
     SOC_CAN->NBTP = btr;
 
-#if CONFIG_MACH_STM32H7 || CONFIG_MAC_STM32G4
+#if CONFIG_MACH_STM32H7
     /* Setup message RAM addresses */
     uint32_t f0sa = (uint32_t)MSG_RAM.RXF0 - SRAMCAN_BASE;
     SOC_CAN->RXF0C = f0sa | (ARRAY_SIZE(MSG_RAM.RXF0) << FDCAN_RXF0C_F0S_Pos);
@@ -313,6 +369,6 @@ can_init(void)
     /*##-3- Configure Interrupts #################################*/
     armcm_enable_irq(CAN_IRQHandler, CAN_IT0_IRQn, 1);
     SOC_CAN->ILE = FDCAN_ILE_EINT0;
-    SOC_CAN->IE = FDCAN_IE_RF0NE | FDCAN_IE_TC;
+    SOC_CAN->IE = FDCAN_IE_RF0NE | FDCAN_IE_TC | FDCAN_IE_PEDE | FDCAN_IE_PEAE;
 }
 DECL_INIT(can_init);

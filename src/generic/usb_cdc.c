@@ -44,11 +44,13 @@ usb_bulk_in_task(void)
 {
     if (!sched_check_wake(&usb_bulk_in_wake))
         return;
-    uint_fast8_t tpos = transmit_pos;
+    uint_fast8_t tpos = transmit_pos, max_tpos = tpos;
     if (!tpos)
         return;
-    uint_fast8_t max_tpos = (tpos > USB_CDC_EP_BULK_IN_SIZE
-                             ? USB_CDC_EP_BULK_IN_SIZE : tpos);
+    if (max_tpos > USB_CDC_EP_BULK_IN_SIZE)
+        max_tpos = USB_CDC_EP_BULK_IN_SIZE;
+    else if (max_tpos == USB_CDC_EP_BULK_IN_SIZE)
+        max_tpos = USB_CDC_EP_BULK_IN_SIZE-1; // Avoid zero-length-packets
     int_fast8_t ret = usb_send_bulk_in(transmit_buf, max_tpos);
     if (ret <= 0)
         return;
@@ -66,14 +68,17 @@ void
 console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Verify space for message
-    uint_fast8_t tpos = transmit_pos, max_size = READP(ce->max_size);
-    if (tpos + max_size > sizeof(transmit_buf))
+    uint_fast8_t tpos = transmit_pos;
+    if (tpos + READP(ce->min_size) > sizeof(transmit_buf))
         // Not enough space for message
         return;
 
     // Generate message
     uint8_t *buf = &transmit_buf[tpos];
-    uint_fast8_t msglen = command_encode_and_frame(buf, ce, args);
+    uint_fast8_t msglen = command_encode_and_frame(
+        buf, sizeof(transmit_buf) - tpos, ce, args);
+    if (!msglen)
+        return;
 
     // Start message transmit
     transmit_pos = tpos + msglen;

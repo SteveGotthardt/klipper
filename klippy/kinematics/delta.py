@@ -23,8 +23,6 @@ class DeltaKinematics:
             stepper_configs[2], need_position_minmax = False,
             default_position_endstop=a_endstop)
         self.rails = [rail_a, rail_b, rail_c]
-        config.get_printer().register_event_handler("stepper_enable:motor_off",
-                                                    self._motor_off)
         # Setup max velocity
         self.max_velocity, self.max_accel = toolhead.get_max_velocity()
         self.max_z_velocity = config.getfloat(
@@ -54,7 +52,6 @@ class DeltaKinematics:
             r.setup_itersolve('delta_stepper_alloc', a, t[0], t[1])
         for s in self.get_steppers():
             s.set_trapq(toolhead.get_trapq())
-            toolhead.register_step_generator(s.generate_steps)
         # Setup boundary checks
         self.need_home = True
         self.limit_xy2 = -1.
@@ -88,9 +85,9 @@ class DeltaKinematics:
                      " and %.2fmm)"
                      % (max_xy, math.sqrt(self.slow_xy2),
                         math.sqrt(self.very_slow_xy2)))
-        self.axes_min = toolhead.Coord(-max_xy, -max_xy, self.min_z, 0.)
-        self.axes_max = toolhead.Coord(max_xy, max_xy, self.max_z, 0.)
-        self.set_position([0., 0., 0.], ())
+        self.axes_min = toolhead.Coord((-max_xy, -max_xy, self.min_z))
+        self.axes_max = toolhead.Coord((max_xy, max_xy, self.max_z))
+        self.set_position([0., 0., 0.], "")
     def get_steppers(self):
         return [s for rail in self.rails for s in rail.get_steppers()]
     def _actuator_to_cartesian(self, spos):
@@ -103,17 +100,19 @@ class DeltaKinematics:
         for rail in self.rails:
             rail.set_position(newpos)
         self.limit_xy2 = -1.
-        if tuple(homing_axes) == (0, 1, 2):
+        if homing_axes == "xyz":
             self.need_home = False
+    def clear_homing_state(self, clear_axes):
+        # Clearing homing state for each axis individually is not implemented
+        if clear_axes:
+            self.limit_xy2 = -1
+            self.need_home = True
     def home(self, homing_state):
         # All axes are homed simultaneously
         homing_state.set_axes([0, 1, 2])
         forcepos = list(self.home_position)
         forcepos[2] = -1.5 * math.sqrt(max(self.arm2)-self.max_xy2)
         homing_state.home_rails(self.rails, forcepos, self.home_position)
-    def _motor_off(self, print_time):
-        self.limit_xy2 = -1.
-        self.need_home = True
     def check_move(self, move):
         end_pos = move.end_pos
         end_xy2 = end_pos[0]**2 + end_pos[1]**2

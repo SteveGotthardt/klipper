@@ -1,6 +1,6 @@
 // Code for parsing incoming commands and encoding outgoing messages
 //
-// Copyright (C) 2016,2017  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2016-2024  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -69,6 +69,28 @@ parse_int(uint8_t **pp)
     return v;
 }
 
+// Write an encoded msgid (optimized 2-byte VLQ encoder)
+static uint8_t *
+encode_msgid(uint8_t *p, uint_fast16_t encoded_msgid)
+{
+    if (encoded_msgid >= 0x80)
+        *p++ = (encoded_msgid >> 7) | 0x80;
+    *p++ = encoded_msgid & 0x7f;
+    return p;
+}
+
+// Parse an encoded msgid (optimized 2-byte parser, return as positive number)
+uint_fast16_t
+command_parse_msgid(uint8_t **pp)
+{
+    uint8_t *p = *pp;
+    uint_fast16_t encoded_msgid = *p++;
+    if (encoded_msgid & 0x80)
+        encoded_msgid = ((encoded_msgid & 0x7f) << 7) | (*p++);
+    *pp = p;
+    return encoded_msgid;
+}
+
 // Parse an incoming command into 'args'
 uint8_t *
 command_parsef(uint8_t *p, uint8_t *maxend
@@ -109,20 +131,23 @@ error:
 
 // Encode a message
 static uint_fast8_t
-command_encodef(uint8_t *buf, const struct command_encoder *ce, va_list args)
+command_encodef(uint8_t *buf, uint_fast8_t buf_size
+                , const struct command_encoder *ce, va_list args)
 {
     uint_fast8_t max_size = READP(ce->max_size);
     if (max_size <= MESSAGE_MIN)
         // Ack/Nak message
         return max_size;
+    if (buf_size < max_size)
+        max_size = buf_size;
     uint8_t *p = &buf[MESSAGE_HEADER_SIZE];
     uint8_t *maxend = &p[max_size - MESSAGE_MIN];
     uint_fast8_t num_params = READP(ce->num_params);
     const uint8_t *param_types = READP(ce->param_types);
-    *p++ = READP(ce->msg_id);
+    p = encode_msgid(p, READP(ce->encoded_msgid));
     while (num_params--) {
-        if (p > maxend)
-            goto error;
+        if (p + 2 > maxend)
+            goto need_space;
         uint_fast8_t t = READP(*param_types);
         param_types++;
         uint32_t v;
@@ -143,7 +168,7 @@ command_encodef(uint8_t *buf, const struct command_encoder *ce, va_list args)
             break;
         case PT_string: {
             uint8_t *s = va_arg(args, uint8_t*), *lenp = p++;
-            while (*s && p<maxend)
+            while (*s && p<=maxend)
                 *p++ = *s++;
             *lenp = p-lenp-1;
             break;
@@ -151,8 +176,8 @@ command_encodef(uint8_t *buf, const struct command_encoder *ce, va_list args)
         case PT_progmem_buffer:
         case PT_buffer: {
             v = va_arg(args, int);
-            if (v > maxend-p)
-                v = maxend-p;
+            if (v >= maxend-p)
+                goto need_space;
             *p++ = v;
             uint8_t *s = va_arg(args, uint8_t*);
             if (t == PT_progmem_buffer)
@@ -166,7 +191,11 @@ command_encodef(uint8_t *buf, const struct command_encoder *ce, va_list args)
             goto error;
         }
     }
+    if (p > maxend)
+        goto need_space;
     return p - buf + MESSAGE_TRAILER_SIZE;
+need_space:
+    return 0;
 error:
     shutdown("Message encode error");
 }
@@ -185,11 +214,12 @@ command_add_frame(uint8_t *buf, uint_fast8_t msglen)
 
 // Encode a message and then add a message block frame around it
 uint_fast8_t
-command_encode_and_frame(uint8_t *buf, const struct command_encoder *ce
-                         , va_list args)
+command_encode_and_frame(uint8_t *buf, uint_fast8_t buf_size
+                         , const struct command_encoder *ce, va_list args)
 {
-    uint_fast8_t msglen = command_encodef(buf, ce, args);
-    command_add_frame(buf, msglen);
+    uint_fast8_t msglen = command_encodef(buf, buf_size, ce, args);
+    if (msglen)
+        command_add_frame(buf, msglen);
     return msglen;
 }
 
@@ -227,7 +257,7 @@ DECL_SHUTDOWN(sendf_shutdown);
 
 // Find the command handler associated with a command
 static const struct command_parser *
-command_lookup_parser(uint_fast8_t cmdid)
+command_lookup_parser(uint_fast16_t cmdid)
 {
     if (!cmdid || cmdid >= READP(command_index_size))
         shutdown("Invalid command");
@@ -309,7 +339,7 @@ command_dispatch(uint8_t *buf, uint_fast8_t msglen)
     uint8_t *p = &buf[MESSAGE_HEADER_SIZE];
     uint8_t *msgend = &buf[msglen-MESSAGE_TRAILER_SIZE];
     while (p < msgend) {
-        uint_fast8_t cmdid = *p++;
+        uint_fast16_t cmdid = command_parse_msgid(&p);
         const struct command_parser *cp = command_lookup_parser(cmdid);
         uint32_t args[READP(cp->num_args)];
         p = command_parsef(p, msgend, cp, args);

@@ -2,7 +2,7 @@
 //
 // Copyright (C) 2019 Eug Krashtan <eug.krashtan@gmail.com>
 // Copyright (C) 2020 Pontus Borg <glpontus@gmail.com>
-// Copyright (C) 2021  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2021-2025  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -35,7 +35,7 @@ static struct canbus_data {
 
     // Transfer buffers
     struct canbus_msg admin_queue[8];
-    uint8_t transmit_buf[96];
+    uint8_t transmit_buf[192];
     uint8_t receive_buf[192];
 } CanData;
 
@@ -86,9 +86,8 @@ console_sendf(const struct command_encoder *ce, va_list args)
     uint32_t tpos = CanData.transmit_pos, tmax = CanData.transmit_max;
     if (tpos >= tmax)
         CanData.transmit_pos = CanData.transmit_max = tpos = tmax = 0;
-    uint32_t max_size = ce->max_size;
-    if (tmax + max_size > sizeof(CanData.transmit_buf)) {
-        if (tmax + max_size - tpos > sizeof(CanData.transmit_buf))
+    if (tmax + ce->max_size > sizeof(CanData.transmit_buf)) {
+        if (tmax - tpos + ce->min_size > sizeof(CanData.transmit_buf))
             // Not enough space for message
             return;
         // Move buffer
@@ -99,8 +98,11 @@ console_sendf(const struct command_encoder *ce, va_list args)
     }
 
     // Generate message
-    uint32_t msglen = command_encode_and_frame(&CanData.transmit_buf[tmax]
-                                               , ce, args);
+    uint32_t msglen = command_encode_and_frame(
+        &CanData.transmit_buf[tmax], sizeof(CanData.transmit_buf) - tmax
+        , ce, args);
+    if (!msglen)
+        return;
 
     // Start message transmit
     CanData.transmit_max = tmax + msglen;
@@ -317,6 +319,25 @@ DECL_TASK(canserial_rx_task);
 /****************************************************************
  * Setup and shutdown
  ****************************************************************/
+
+DECL_ENUMERATION("canbus_bus_state", "active", CANBUS_STATE_ACTIVE);
+DECL_ENUMERATION("canbus_bus_state", "warn", CANBUS_STATE_WARN);
+DECL_ENUMERATION("canbus_bus_state", "passive", CANBUS_STATE_PASSIVE);
+DECL_ENUMERATION("canbus_bus_state", "off", CANBUS_STATE_OFF);
+
+void
+command_get_canbus_status(uint32_t *args)
+{
+    struct canbus_status status;
+    memset(&status, 0, sizeof(status));
+    canhw_get_status(&status);
+    sendf("canbus_status rx_error=%u tx_error=%u tx_retries=%u"
+          " canbus_bus_state=%u"
+          , status.rx_error, status.tx_error, status.tx_retries
+          , status.bus_state);
+}
+DECL_COMMAND_FLAGS(command_get_canbus_status, HF_IN_SHUTDOWN
+                   , "get_canbus_status");
 
 void
 command_get_canbus_id(uint32_t *args)

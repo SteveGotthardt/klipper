@@ -8,6 +8,215 @@ All dates in this document are approximate.
 
 ## Changes
 
+20260525: The internal implementation of "probe:z_virtual_endstop" has
+changed. Most users will not observe a change in behavior. Previously
+it was technically possible to mix "probe:z_virtual_endstop" with
+other types of Z endstops and this behavior is no longer valid.
+
+20260501: The handling of the `[probe_eddy_current]` `tap_threshold`
+config option and associated `TAP_THRESHOLD` G-Code parameter has
+changed. It will be necessary to recalibrate the value. See the
+[eddy probe documentation](Eddy_Probe.md) for calibration directions.
+
+20260408: The script `lib/canboot/flash_can.py` has been updated to
+the most current version from
+[Katapult](https://github.com/Arksine/katapult) and as such renamed to
+`lib/katapult/flashtool.py`.  If you call this script directly instead
+of using the existing Makefiles, you will need to change the path to
+the script to `lib/katapult/flashtool.py`.
+
+20260318: The `[probe_eddy_current]` config options `speed`,
+`lift_speed`, `samples`, `sample_retract_dist`, `samples_result`,
+`samples_tolerance`, and `samples_tolerance_retries` no longer apply
+to probe commands using `METHOD=scan`, `METHOD=rapid_scan`, nor
+`METHOD=tap`. To use different settings, supply the equivalent
+`PROBE_SPEED`, `LIFT_SPEED`, `SAMPLES`, `SAMPLE_RETRACT_DIST`,
+`SAMPLES_RESULT`, `SAMPLES_TOLERANCE`, or `SAMPLES_TOLERANCE_RETRIES`
+parameter with the probe command.
+
+20260318: The `[probe_eddy_current]` config option `z_offset` has been
+renamed to `descend_z`. Using the old name is deprecated and it will
+be removed in the near future.
+
+20260214: The `MANUAL_STEPPER` G-Code command `STOP_ON_ENDSTOP`
+parameter has changed. See the
+[MANUAL_STEPPER](G-Codes.md#manual_stepper) documentation for
+details. Using the previous integer values (-2, -1, 1, 2) is
+deprecated and support will be removed in the near future.
+
+20260207: The low-level i2c behavior of sx1509 and uc1701 devices has
+changed. Previously an i2c error would result in a shutdown, and now
+i2c errors when communicating with these devices will only generate
+warnings in the log file.
+
+20260109: The status value `{printer.probe.last_z_result}` is
+deprecated; it will be removed in the near future. Use
+`{printer.probe.last_probe_position}` instead, and note that this new
+value already has the probe's configured xyz offsets applied.
+
+20260109: The g-code console text output from the `PROBE`,
+`PROBE_ACCURACY`, and similar commands has changed. Now Z heights are
+reported relative to the nominal bed Z position instead of relative to
+the probe's configured `z_offset`. Similarly, intermediate probe x and
+y console reports will also have the probe's configured `x_offset` and
+`y_offset` applied.
+
+20260109: The `[screws_tilt_adjust]` module now reports the status
+variable `{printer.screws_tilt_adjust.result.screw1.z}` with the
+probe's `z_offset` applied. That is, one would previously need to
+subtract the probe's configured `z_offset` to find the absolute Z
+deviation at the given screw location and now one must not apply the
+`z_offset`.
+
+20251122: An option `axis` has been added to `[carriage <name>]`
+sections for `generic_cartesian` kinematics, allowing arbitrary names
+for primary carriages. Users are encouraged to explicitly specify
+`axis` option now.
+
+20251106: The status fields `{printer.toolhead.position}`,
+`{printer.gcode_move.position}`,
+`{printer.gcode_move.gcode_position}`, and
+`{printer.motion_report.live_position}` are changing. These
+coordinates used to always contain four components, but now may
+contain additional components. The ordering and number of components
+may change at run-time - see the
+[status reference](Status_Reference.md#accessing-coordinates) for
+important details. Accessing any of these coordinates in macros using
+the ".e" accessor is deprecated - use something like
+`{printer.toolhead.position[printer.gcode_move.axis_map.E]}` as an
+alternative.
+
+20251106: The status fields `{printer.gcode_move.homing_origin}`,
+`{printer.toolhead.axis_min}`, and `{printer.toolhead.axis_max}`
+currently contain four components where the fourth component is always
+zero. This behavior is deprecated. In the future these coordinates may
+contain only three components. For additional information see the
+[status reference](Status_Reference.md#accessing-coordinates).
+
+20251010: During normal printing the command processing will now
+attempt to stay one second ahead of printer movement (reduced from two
+seconds previously).
+
+20251003: Support for the undocumented `max_stepper_error` option in
+the `[printer]` config section has been removed.
+
+20250916: The definitions of EI, 2HUMP_EI, and 3HUMP_EI input shapers
+were updated. For best performance it is recommended to recalibrate
+input shapers, especially if some of these shapers are currently used.
+
+20250811: Support for the `max_accel_to_decel` parameter in the
+`[printer]` config section has been removed and support for the
+`ACCEL_TO_DECEL` parameter in the `SET_VELOCITY_LIMIT` command has
+been removed. These capabilities were deprecated on 20240313.
+
+20250721: The `[pca9632]` and `[mcp4018]` modules no longer accept the
+`scl_pin` and `sda_pin` options. Use `i2c_software_scl_pin` and
+`i2c_software_sda_pin` instead.
+
+20250428: The maximum `cycle_time` for pwm `[output_pin]`,
+`[pwm_cycle_time]`, `[pwm_tool]`, and similar config sections is now 3
+seconds (reduced from 5 seconds). The `maximum_mcu_duration` in
+`[pwm_tool]` is now also 3 seconds.
+
+20250418: The manual_stepper `STOP_ON_ENDSTOP` feature may now take
+less time to complete. Previously, the command would wait the entire
+time the move could possibly take even if the endstop triggered
+earlier. Now, the command finishes shortly after the endstop trigger.
+
+20250417: SPI devices using "software SPI" are now rate limited.
+Previously, the `spi_speed` in the config was ignored and the
+transmission speed was only limited by the processing speed of the
+micro-controller. Now, speeds are limited by the `spi_speed` config
+parameter (actual hardware speeds are likely to be lower than the
+configured value due to software overhead).
+
+20250411: Klipper v0.13.0 released.
+
+20250308: The `AUTO` parameter of the
+`AXIS_TWIST_COMPENSATION_CALIBRATE` command has been removed.
+
+20250131: Option `VARIABLE=<name>` in `SAVE_VARIABLE` requires lowercase
+value. For example, `extruder` instead of mixedcase `Extruder` or
+uppercase `EXTRUDER`. Using any uppercase letter will raise an error.
+
+20241203: The resonance test has been changed to include slow sweeping
+moves. This change requires that testing point(s) have some clearance
+in X/Y plane (+/- 30 mm from the test point should suffice when using
+the default settings). The new test should generally produce more
+accurate and reliable test results. However, if required, the previous
+test behavior can be restored by adding options `sweeping_period: 0` and
+`accel_per_hz: 75` to the `[resonance_tester]` config section.
+
+20241201: In some cases Klipper may have ignored leading characters or
+spaces in a traditional G-Code command. For example, "99M123" may have
+been interpreted as "M123" and "M 321" may have been interpreted as
+"M321". Klipper will now report these cases with an "Unknown command"
+warning.
+
+20241112: Option `CHIPS=<chip_name>` in `TEST_RESONANCES` and
+`SHAPER_CALIBRATE` requires specifying the full name(s) of the accel
+chip(s). For example, `adxl345 rpi` instead of short name - `rpi`.
+
+20240912: `SET_PIN`, `SET_SERVO`, `SET_FAN_SPEED`, `M106`, and `M107`
+commands are now collated. Previously, if many updates to the same
+object were issued faster than the minimum scheduling time (typically
+100ms) then actual updates could be queued far into the future. Now if
+many updates are issued in rapid succession then it is possible that
+only the latest request will be applied. If the previous behavior is
+required then consider adding explicit `G4` delay commands between
+updates.
+
+20240912: Support for `maximum_mcu_duration` and `static_value`
+parameters in `[output_pin]` config sections have been removed. These
+options have been deprecated since 20240123.
+
+20240415: The `on_error_gcode` parameter in the `[virtual_sdcard]`
+config section now has a default. If this parameter is not specified
+it now defaults to `TURN_OFF_HEATERS`. If the previous behavior is
+desired (take no default action on an error during a virtual_sdcard
+print) then define `on_error_gcode` with an empty value.
+
+20240313: The `max_accel_to_decel` parameter in the `[printer]` config
+section has been deprecated. The `ACCEL_TO_DECEL` parameter of the
+`SET_VELOCITY_LIMIT` command has been deprecated. The
+`printer.toolhead.max_accel_to_decel` status has been removed. Use the
+[minimum_cruise_ratio parameter](./Config_Reference.md#printer)
+instead. The deprecated features will be removed in the near future,
+and using them in the interim may result in subtly different behavior.
+
+20240215: Several deprecated features have been removed. Using "NTC
+100K beta 3950" as a thermistor name has been removed (deprecated on
+20211110). The `SYNC_STEPPER_TO_EXTRUDER` and
+`SET_EXTRUDER_STEP_DISTANCE` commands have been removed, and the
+extruder `shared_heater` config option has been removed (deprecated on
+20220210). The bed_mesh `relative_reference_index` option has been
+removed (deprecated on 20230619).
+
+20240123: The output_pin SET_PIN CYCLE_TIME parameter has been
+removed. Use the new
+[pwm_cycle_time](Config_Reference.md#pwm_cycle_time) module if it is
+necessary to dynamically change a pwm pin's cycle time.
+
+20240123: The output_pin `maximum_mcu_duration` parameter is
+deprecated. Use a [pwm_tool config section](Config_Reference.md#pwm_tool)
+instead. The option will be removed in the near future.
+
+20240123: The output_pin `static_value` parameter is deprecated.
+Replace with `value` and `shutdown_value` parameters.  The option will
+be removed in the near future.
+
+20231216: The `[hall_filament_width_sensor]` is changed to trigger filament runout
+when the thickness of the filament exceeds `max_diameter`. The maximum diameter
+defaults to `default_nominal_filament_diameter + max_difference`. See
+[[hall_filament_width_sensor] configuration
+reference](./Config_Reference.md#hall_filament_width_sensor) for more details.
+
+20231207: Several undocumented config parameters in the `[printer]`
+config section have been removed (the buffer_time_low,
+buffer_time_high, buffer_time_start, and move_flush_time parameters).
+
+20231110: Klipper v0.12.0 released.
+
 20230826: If `safe_distance` is set or calculated to be 0 in `[dual_carriage]`,
 the carriages proximity checks will be disabled as per documentation. A user
 may wish to configure `safe_distance` explicitly to prevent accidental crashes
@@ -27,7 +236,7 @@ carriage are exported as `printer.dual_carriage.carriage_0` and
 `printer.dual_carriage.carriage_1`.
 
 20230619: The `relative_reference_index` option has been deprecated
-and superceded by the `zero_reference_position` option.  Refer to the
+and superseded by the `zero_reference_position` option.  Refer to the
 [Bed Mesh Documentation](./Bed_Mesh.md#the-deprecated-relative_reference_index)
 for details on how to update the configuration.  With this deprecation
 the `RELATIVE_REFERENCE_INDEX` is no longer available as a parameter
@@ -261,7 +470,7 @@ endstop phases by running the ENDSTOP_PHASE_CALIBRATE command.
 `gear_ratio` for their rotary steppers, and they may no longer specify
 a `step_distance` parameter.  See the
 [config reference](Config_Reference.md#stepper) for the format of the
-new gear_ratio paramter.
+new gear_ratio parameter.
 
 20201213: It is not valid to specify a Z "position_endstop" when using
 "probe:z_virtual_endstop".  An error will now be raised if a Z

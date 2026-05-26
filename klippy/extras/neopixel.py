@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
+from . import led
 
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
@@ -15,7 +16,6 @@ MAX_MCU_SIZE = 500  # Sanity check on LED chain length
 class PrinterNeoPixel:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
-        self.mutex = printer.get_reactor().mutex()
         # Configure neopixel
         ppins = printer.lookup_object('pins')
         pin_params = ppins.lookup_pin(config.get('pin'))
@@ -40,9 +40,7 @@ class PrinterNeoPixel:
         if len(self.color_map) > MAX_MCU_SIZE:
             raise config.error("neopixel chain too long")
         # Initialize color data
-        pled = printer.load_object(config, "led")
-        self.led_helper = pled.setup_helper(config, self.update_leds,
-                                            chain_count)
+        self.led_helper = led.LEDHelper(config, self.update_leds, chain_count)
         self.color_data = bytearray(len(self.color_map))
         self.update_color_data(self.led_helper.get_status()['color_data'])
         self.old_color_data = bytearray([d ^ 1 for d in self.color_data])
@@ -100,11 +98,8 @@ class PrinterNeoPixel:
         else:
             logging.info("Neopixel update did not succeed")
     def update_leds(self, led_state, print_time):
-        def reactor_bgfunc(eventtime):
-            with self.mutex:
-                self.update_color_data(led_state)
-                self.send_data(print_time)
-        self.printer.get_reactor().register_callback(reactor_bgfunc)
+        self.update_color_data(led_state)
+        self.send_data(print_time)
     def get_status(self, eventtime=None):
         return self.led_helper.get_status(eventtime)
 

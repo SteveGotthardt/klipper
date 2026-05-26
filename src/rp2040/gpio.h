@@ -4,6 +4,7 @@
 #include <stdint.h> // uint32_t
 
 struct gpio_out {
+    void *sio;
     uint32_t bit;
 };
 struct gpio_out gpio_out_setup(uint8_t pin, uint8_t val);
@@ -13,6 +14,7 @@ void gpio_out_toggle(struct gpio_out g);
 void gpio_out_write(struct gpio_out g, uint8_t val);
 
 struct gpio_in {
+    void *sio;
     uint32_t bit;
 };
 struct gpio_in gpio_in_setup(uint8_t pin, int8_t pull_up);
@@ -21,10 +23,9 @@ uint8_t gpio_in_read(struct gpio_in g);
 
 struct gpio_pwm {
     void *reg;
-    uint8_t shift;
-    uint32_t mask;
+    uint32_t hwpwm_ticks, shift, mask;
 };
-struct gpio_pwm gpio_pwm_setup(uint8_t pin, uint32_t cycle_time, uint8_t val);
+struct gpio_pwm gpio_pwm_setup(uint8_t pin, uint32_t cycle_time, uint32_t val);
 void gpio_pwm_write(struct gpio_pwm g, uint32_t val);
 
 struct gpio_adc {
@@ -50,8 +51,8 @@ struct i2c_config {
 };
 
 struct i2c_config i2c_setup(uint32_t bus, uint32_t rate, uint8_t addr);
-void i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write);
-void i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
-              , uint8_t read_len, uint8_t *read);
+int i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write);
+int i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
+             , uint8_t read_len, uint8_t *read);
 
 #endif // gpio.h

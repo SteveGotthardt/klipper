@@ -102,20 +102,35 @@ some functionality in C code.
 Initial execution starts in **klippy/klippy.py**. This reads the
 command-line arguments, opens the printer config file, instantiates
 the main printer objects, and starts the serial connection. The main
-execution of G-code commands is in the process_commands() method in
+execution of G-code commands is in the _process_commands() method in
 **klippy/gcode.py**. This code translates the G-code commands into
 printer object calls, which frequently translate the actions to
 commands to be executed on the micro-controller (as declared via the
 DECL_COMMAND macro in the micro-controller code).
 
-There are four threads in the Klippy host code. The main thread
-handles incoming gcode commands. A second thread (which resides
-entirely in the **klippy/chelper/serialqueue.c** C code) handles
-low-level IO with the serial port. The third thread is used to process
-response messages from the micro-controller in the Python code (see
-**klippy/serialhdl.py**). The fourth thread writes debug messages to
-the log (see **klippy/queuelogger.py**) so that the other threads
-never block on log writes.
+There are several threads in the Klipper host code:
+* There is a Python "main thread" that handles incoming G-Code
+  commands and is the starting point for most actions. This thread
+  runs the [reactor](https://en.wikipedia.org/wiki/Reactor_pattern)
+  (**klippy/reactor.py**) and most high-level actions originate from
+  IO and timer event callbacks from that reactor.
+* A thread for writing messages to the log so that the other threads
+  do not block on log writes. This thread resides in the
+  **klippy/queuelogger.py** code and its multi-threaded nature is not
+  exposed to the main Python thread.
+* A thread per micro-controller that performs the low-level reading
+  and writing of messages to that micro-controller. It resides in the
+  **klippy/chelper/serialqueue.c** C code and its multi-threaded
+  nature is not exposed to the Python code.
+* A thread per micro-controller for processing messages received from
+  that micro-controller in the Python code. This thread is created in
+  **klippy/serialhdl.py**. Care must be taken in Python callbacks
+  invoked from this thread as this thread may directly interact with
+  the main Python thread.
+* A thread per stepper motor that calculates the timing of stepper
+  motor step pulses and compresses those times. This thread resides in
+  the **klippy/chelper/steppersync.c** C code and its multi-threaded
+  nature is not exposed to the Python code.
 
 ## Code flow of a move command
 
@@ -136,8 +151,10 @@ provides further information on the mechanics of moves.
 
 * The ToolHead class (in toolhead.py) handles "look-ahead" and tracks
   the timing of printing actions. The main codepath for a move is:
-  `ToolHead.move() -> MoveQueue.add_move() -> MoveQueue.flush() ->
-  Move.set_junction() -> ToolHead._process_moves()`.
+  `ToolHead.move() -> LookAheadQueue.add_move()`, then
+  `ToolHead.move() -> ToolHead._process_lookahead() ->
+  LookAheadQueue.flush() -> Move.set_junction()`, and then
+  `ToolHead._process_lookahead() -> trapq_append()`.
   * ToolHead.move() creates a Move() object with the parameters of the
   move (in cartesian space and in units of seconds and millimeters).
   * The kinematics class is given the opportunity to audit each move
@@ -146,31 +163,47 @@ provides further information on the mechanics of moves.
   may raise an error if the move is not valid. If check_move()
   completes successfully then the underlying kinematics must be able
   to handle the move.
-  * MoveQueue.add_move() places the move object on the "look-ahead"
-  queue.
-  * MoveQueue.flush() determines the start and end velocities of each
-  move.
+  * LookAheadQueue.add_move() places the move object on the
+  "look-ahead" queue.
+  * LookAheadQueue.flush() determines the start and end velocities of
+  each move.
   * Move.set_junction() implements the "trapezoid generator" on a
   move. The "trapezoid generator" breaks every move into three parts:
   a constant acceleration phase, followed by a constant velocity
   phase, followed by a constant deceleration phase. Every move
   contains these three phases in this order, but some phases may be of
   zero duration.
-  * When ToolHead._process_moves() is called, everything about the
+  * When ToolHead._process_lookahead() resumes, everything about the
   move is known - its start location, its end location, its
   acceleration, its start/cruising/end velocity, and distance traveled
   during acceleration/cruising/deceleration. All the information is
   stored in the Move() class and is in cartesian space in units of
   millimeters and seconds.
+  * The moves are then placed on a "trapezoid motion queue" via
+  trapq_append() (in klippy/chelper/trapq.c). The trapq stores all the
+  information in the Move() class in a C struct accessible to the host
+  C code.
+
+* Note that the extruder is handled in its own kinematic class:
+  `ToolHead._process_lookahead() -> PrinterExtruder.process_move()`.
+  Since the Move() class specifies the exact movement time and since
+  step pulses are sent to the micro-controller with specific timing,
+  stepper movements produced by the extruder class will be in sync
+  with head movement even though the code is kept separate.
+
+* For efficiency reasons, stepper motion is generated in the C code in
+  a thread per stepper motor. The threads are notified when steps
+  should be generated by the motion_queuing module
+  (klippy/extras/motion_queuing.py):
+  `PrinterMotionQueuing._flush_handler() ->
+  PrinterMotionQueuing._advance_move_time() ->
+  steppersyncmgr_gen_steps() -> se_start_gen_steps()`.
 
 * Klipper uses an
   [iterative solver](https://en.wikipedia.org/wiki/Root-finding_algorithm)
-  to generate the step times for each stepper. For efficiency reasons,
-  the stepper pulse times are generated in C code. The moves are first
-  placed on a "trapezoid motion queue": `ToolHead._process_moves() ->
-  trapq_append()` (in klippy/chelper/trapq.c). The step times are then
-  generated: `ToolHead._process_moves() ->
-  ToolHead._update_move_time() -> MCU_Stepper.generate_steps() ->
+  to generate the step times for each stepper. The step times are
+  generated from the background thread (klippy/chelper/steppersync.c):
+  `se_background_thread() -> se_generate_steps() ->
   itersolve_generate_steps() -> itersolve_gen_steps_range()` (in
   klippy/chelper/itersolve.c). The goal of the iterative solver is to
   find step times given a function that calculates a stepper position
@@ -181,13 +214,6 @@ provides further information on the mechanics of moves.
   converges to the desired time. The kinematic stepper position
   formulas are located in the klippy/chelper/ directory (eg,
   kin_cart.c, kin_corexy.c, kin_delta.c, kin_extruder.c).
-
-* Note that the extruder is handled in its own kinematic class:
-  `ToolHead._process_moves() -> PrinterExtruder.move()`. Since
-  the Move() class specifies the exact movement time and since step
-  pulses are sent to the micro-controller with specific timing,
-  stepper movements produced by the extruder class will be in sync
-  with head movement even though the code is kept separate.
 
 * After the iterative solver calculates the step times they are added
   to an array: `itersolve_gen_steps_range() -> stepcompress_append()`
@@ -204,7 +230,7 @@ provides further information on the mechanics of moves.
   commands that correspond to the list of stepper step times built in
   the previous stage. These "queue_step" commands are then queued,
   prioritized, and sent to the micro-controller (via
-  stepcompress.c:steppersync and serialqueue.c:serialqueue).
+  steppersync.c:steppersync and serialqueue.c:serialqueue).
 
 * Processing of the queue_step commands on the micro-controller starts
   in src/command.c which parses the command and calls
@@ -284,6 +310,11 @@ The following may also be useful:
   during the `load_config()` or "connect event" phases. Use either
   `raise config.error("my error")` or `raise printer.config_error("my
   error")` to report the error.
+* Do not store a reference to the `config` object in a class member
+  variable (nor in any similar location that may persist past initial
+  module loading). The `config` object is a reference to a "config
+  loading phase" class and it is not valid to invoke its methods after
+  the "config loading phase" has completed.
 * Use the "pins" module to configure a pin on a micro-controller. This
   is typically done with something similar to
   `printer.lookup_object("pins").setup_pin("pwm",
@@ -357,10 +388,10 @@ Useful steps:
    be efficient as it is typically only called during homing and
    probing operations.
 5. Other methods. Implement the `check_move()`, `get_status()`,
-   `get_steppers()`, `home()`, and `set_position()` methods. These
-   functions are typically used to provide kinematic specific checks.
-   However, at the start of development one can use boiler-plate code
-   here.
+   `get_steppers()`, `home()`, `clear_homing_state()`, and `set_position()`
+   methods. These functions are typically used to provide kinematic
+   specific checks. However, at the start of development one can use
+   boiler-plate code here.
 6. Implement test cases. Create a g-code file with a series of moves
    that can test important cases for the given kinematics. Follow the
    [debugging documentation](Debugging.md) to convert this g-code file

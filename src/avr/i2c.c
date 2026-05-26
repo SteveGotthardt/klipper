@@ -11,10 +11,12 @@
 #include "gpio.h" // i2c_setup
 #include "internal.h" // GPIO
 #include "sched.h" // sched_shutdown
+#include "i2ccmds.h" // I2C_BUS_SUCCESS
 
 DECL_ENUMERATION("i2c_bus", "twi", 0);
 
-#if CONFIG_MACH_atmega168 || CONFIG_MACH_atmega328 || CONFIG_MACH_atmega328p
+#if CONFIG_MACH_atmega168 || CONFIG_MACH_atmega328 \
+      || CONFIG_MACH_atmega328p || CONFIG_MACH_lgt8f328p
 static const uint8_t SCL = GPIO('C', 5), SDA = GPIO('C', 4);
 DECL_CONSTANT_STR("BUS_PINS_twi", "PC5,PC4");
 #elif CONFIG_MACH_atmega644p || CONFIG_MACH_atmega1284p
@@ -94,7 +96,7 @@ i2c_stop(uint32_t timeout)
     TWCR = (1<<TWEN) | (1<<TWINT) | (1<<TWSTO);
 }
 
-void
+int
 i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write)
 {
     uint32_t timeout = timer_read_time() + timer_from_us(5000);
@@ -104,9 +106,11 @@ i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write)
     while (write_len--)
         i2c_send_byte(*write++, timeout);
     i2c_stop(timeout);
+
+    return I2C_BUS_SUCCESS;
 }
 
-void
+int
 i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
          , uint8_t read_len, uint8_t *read)
 {
@@ -120,4 +124,6 @@ i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
     while (read_len--)
         i2c_receive_byte(read++, timeout, read_len);
     i2c_stop(timeout);
+
+    return I2C_BUS_SUCCESS;
 }

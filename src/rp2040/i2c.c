@@ -11,6 +11,7 @@
 #include "internal.h" // pclock, gpio_peripheral
 #include "hardware/regs/resets.h" // RESETS_RESET_I2C*_BITS
 #include "hardware/structs/i2c.h"
+#include "i2ccmds.h" // I2C_BUS_SUCCESS
 
 struct i2c_info {
     i2c_hw_t *i2c;
@@ -100,10 +101,14 @@ i2c_setup(uint32_t bus, uint32_t rate, uint8_t addr)
 
         // See `i2c_set_baudrate` in the Pico SDK `hardware_i2c/i2c.c` file
         // for details on the calculations here.
-        if (rate > 1000000)
-            rate = 1000000; // Clamp the rate to 1Mbps
-        uint32_t period = (pclk + rate / 2) / rate;
-        uint32_t lcnt = period * 3 / 5;
+        uint32_t period;
+        if (rate >= 1000000)
+            period = DIV_ROUND_CLOSEST(pclk, 1000000);
+        else if (rate >= 400000)
+            period = DIV_ROUND_CLOSEST(pclk, 400000);
+        else
+            period = DIV_ROUND_CLOSEST(pclk, 100000);
+        uint32_t lcnt = DIV_ROUND_CLOSEST(period * ((3<<16) / 5), 1<<16); // 60%
         uint32_t hcnt = period - lcnt;
         uint32_t sda_tx_hold_count = ((pclk * 3) / 10000000) + 1;
 
@@ -132,8 +137,8 @@ i2c_stop(i2c_hw_t *i2c)
     i2c->enable = 0;
 }
 
-static void
-i2c_do_write(i2c_hw_t *i2c, uint8_t addr, uint8_t write_len, uint8_t *write
+static int
+i2c_do_write(i2c_hw_t *i2c, uint8_t write_len, uint8_t *write
              , uint8_t send_stop, uint32_t timeout)
 {
     for (int i = 0; i < write_len; i++) {
@@ -143,7 +148,7 @@ i2c_do_write(i2c_hw_t *i2c, uint8_t addr, uint8_t write_len, uint8_t *write
         // Wait until there's a spot in the TX FIFO
         while (i2c->txflr == 16) {
             if (!timer_is_before(timer_read_time(), timeout))
-                shutdown("i2c timeout");
+                return I2C_BUS_TIMEOUT;
         }
 
         i2c->data_cmd = first << I2C_IC_DATA_CMD_RESTART_LSB
@@ -152,24 +157,39 @@ i2c_do_write(i2c_hw_t *i2c, uint8_t addr, uint8_t write_len, uint8_t *write
     }
 
     if (!send_stop)
-        return;
+        return I2C_BUS_SUCCESS;
 
     // Drain the transmit buffer
     while (i2c->txflr != 0) {
         if (!timer_is_before(timer_read_time(), timeout))
-            shutdown("i2c timeout");
+            return I2C_BUS_TIMEOUT;
     }
+
+    if (i2c->raw_intr_stat & I2C_IC_RAW_INTR_STAT_TX_ABRT_BITS) {
+        uint32_t abort_source = i2c->tx_abrt_source;
+        if (abort_source & I2C_IC_TX_ABRT_SOURCE_ABRT_7B_ADDR_NOACK_BITS)
+        {
+            i2c->clr_tx_abrt;
+            return I2C_BUS_START_NACK;
+        }
+        if (abort_source & I2C_IC_TX_ABRT_SOURCE_ABRT_TXDATA_NOACK_BITS)
+        {
+            i2c->clr_tx_abrt;
+            return I2C_BUS_NACK;
+        }
+    }
+    return I2C_BUS_SUCCESS;
 }
 
-static void
-i2c_do_read(i2c_hw_t *i2c, uint8_t addr, uint8_t read_len, uint8_t *read
+static int
+i2c_do_read(i2c_hw_t *i2c, uint8_t read_len, uint8_t *read
             , uint32_t timeout)
 {
     int have_read = 0;
     int to_send = read_len;
     while (have_read < read_len) {
         if (!timer_is_before(timer_read_time(), timeout))
-            shutdown("i2c timeout");
+            return I2C_BUS_TIMEOUT;
 
         if (to_send > 0 && i2c->txflr < 16) {
             int first = to_send == read_len;
@@ -186,30 +206,47 @@ i2c_do_read(i2c_hw_t *i2c, uint8_t addr, uint8_t read_len, uint8_t *read
             *read++ = i2c->data_cmd & 0xFF;
             have_read++;
         }
+
+        if (i2c->raw_intr_stat & I2C_IC_RAW_INTR_STAT_TX_ABRT_BITS) {
+            uint32_t abort_source = i2c->tx_abrt_source;
+            if (abort_source & I2C_IC_TX_ABRT_SOURCE_ABRT_7B_ADDR_NOACK_BITS) {
+                i2c->clr_tx_abrt;
+                return I2C_BUS_START_READ_NACK;
+            }
+        }
     }
+
+    return I2C_BUS_SUCCESS;
 }
 
-void
+int
 i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write)
 {
     i2c_hw_t *i2c = (i2c_hw_t*)config.i2c;
     uint32_t timeout = timer_read_time() + timer_from_us(5000);
+    int ret;
 
     i2c_start(i2c, config.addr);
-    i2c_do_write(i2c, config.addr, write_len, write, 1, timeout);
+    ret = i2c_do_write(i2c, write_len, write, 1, timeout);
     i2c_stop(i2c);
+    return ret;
 }
 
-void
+int
 i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
          , uint8_t read_len, uint8_t *read)
 {
     i2c_hw_t *i2c = (i2c_hw_t*)config.i2c;
     uint32_t timeout = timer_read_time() + timer_from_us(5000);
+    int ret = I2C_BUS_SUCCESS;
 
     i2c_start(i2c, config.addr);
     if (reg_len != 0)
-        i2c_do_write(i2c, config.addr, reg_len, reg, 0, timeout);
-    i2c_do_read(i2c, config.addr, read_len, read, timeout);
+        ret = i2c_do_write(i2c, reg_len, reg, 0, timeout);
+    if (ret != I2C_BUS_SUCCESS)
+        goto out;
+    ret = i2c_do_read(i2c, read_len, read, timeout);
+out:
     i2c_stop(i2c);
+    return ret;
 }

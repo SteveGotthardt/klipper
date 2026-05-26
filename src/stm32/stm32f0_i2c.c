@@ -9,6 +9,7 @@
 #include "gpio.h" // i2c_setup
 #include "internal.h" // GPIO
 #include "sched.h" // sched_shutdown
+#include "i2ccmds.h" // I2C_BUS_SUCCESS
 
 struct i2c_info {
     I2C_TypeDef *i2c;
@@ -22,6 +23,8 @@ struct i2c_info {
   DECL_CONSTANT_STR("BUS_PINS_i2c1_PF1_PF0", "PF1,PF0");
   DECL_ENUMERATION("i2c_bus", "i2c1_PB8_PB9", 2);
   DECL_CONSTANT_STR("BUS_PINS_i2c1_PB8_PB9", "PB8,PB9");
+  DECL_ENUMERATION("i2c_bus", "i2c1_PB8_PB7", 3);
+  DECL_CONSTANT_STR("BUS_PINS_i2c1_PB8_PB7", "PB8,PB7");
   // Deprecated "i2c1a" style mappings
   DECL_ENUMERATION("i2c_bus", "i2c1", 0);
   DECL_CONSTANT_STR("BUS_PINS_i2c1", "PB6,PB7");
@@ -41,9 +44,15 @@ struct i2c_info {
   DECL_CONSTANT_STR("BUS_PINS_i2c2_PB10_PB11", "PB10,PB11");
   DECL_ENUMERATION("i2c_bus", "i2c2_PB13_PB14", 4);
   DECL_CONSTANT_STR("BUS_PINS_i2c2_PB13_PB14", "PB13,PB14");
+  DECL_ENUMERATION("i2c_bus", "i2c2_PA7_PA6", 5);
+  DECL_CONSTANT_STR("BUS_PINS_i2c2_PA7_PA6", "PA7,PA6");
   #ifdef I2C3
-    DECL_ENUMERATION("i2c_bus", "i2c3_PB3_PB4", 5);
+    DECL_ENUMERATION("i2c_bus", "i2c3_PB3_PB4", 6);
     DECL_CONSTANT_STR("BUS_PINS_i2c3_PB3_PB4", "PB3,PB4");
+    DECL_ENUMERATION("i2c_bus", "i2c3_PC0_PC1", 7);
+    DECL_CONSTANT_STR("BUS_PINS_i2c3_PC0_PC1", "PC0,PC1");
+    DECL_ENUMERATION("i2c_bus", "i2c3_PA7_PA6", 8);
+    DECL_CONSTANT_STR("BUS_PINS_i2c3_PA7_PA6", "PA7,PA6");
   #endif
 #elif CONFIG_MACH_STM32L4
   DECL_ENUMERATION("i2c_bus", "i2c1_PB6_PB7", 0);
@@ -82,6 +91,8 @@ struct i2c_info {
   DECL_CONSTANT_STR("BUS_PINS_i2c1_PB8_PB9", "PB8,PB9");
   DECL_ENUMERATION("i2c_bus", "i2c2_PB10_PB11", 2);
   DECL_CONSTANT_STR("BUS_PINS_i2c2_PB10_PB11", "PB10,PB11");
+  DECL_ENUMERATION("i2c_bus", "i2c3_PA8_PC9", 3);
+  DECL_CONSTANT_STR("BUS_PINS_i2c3_PA8_PC9", "PA8,PC9");
 #endif
 
 static const struct i2c_info i2c_bus[] = {
@@ -89,6 +100,7 @@ static const struct i2c_info i2c_bus[] = {
     { I2C1, GPIO('B', 6), GPIO('B', 7), GPIO_FUNCTION(1) },
     { I2C1, GPIO('F', 1), GPIO('F', 0), GPIO_FUNCTION(1) },
     { I2C1, GPIO('B', 8), GPIO('B', 9), GPIO_FUNCTION(1) },
+    { I2C1, GPIO('B', 8), GPIO('B', 7), GPIO_FUNCTION(1) },
 #elif CONFIG_MACH_STM32F7
     { I2C1, GPIO('B', 6), GPIO('B', 7), GPIO_FUNCTION(1) },
 #elif CONFIG_MACH_STM32G0
@@ -97,8 +109,11 @@ static const struct i2c_info i2c_bus[] = {
     { I2C1, GPIO('A', 9), GPIO('A', 10), GPIO_FUNCTION(6) },
     { I2C2, GPIO('B', 10), GPIO('B', 11), GPIO_FUNCTION(6) },
     { I2C2, GPIO('B', 13), GPIO('B', 14), GPIO_FUNCTION(6) },
+    { I2C2, GPIO('A', 7), GPIO('A', 6), GPIO_FUNCTION(8) },
   #ifdef I2C3
     { I2C3, GPIO('B', 3), GPIO('B', 4), GPIO_FUNCTION(6) },
+    { I2C3, GPIO('C', 0), GPIO('C', 1), GPIO_FUNCTION(6) },
+    { I2C3, GPIO('A', 7), GPIO('A', 6), GPIO_FUNCTION(9) },
   #endif
 #elif CONFIG_MACH_STM32L4
     { I2C1, GPIO('B', 6), GPIO('B', 7), GPIO_FUNCTION(4) },
@@ -120,6 +135,7 @@ static const struct i2c_info i2c_bus[] = {
     { I2C1, GPIO('B', 6), GPIO('B', 7), GPIO_FUNCTION(4) },
     { I2C1, GPIO('B', 8), GPIO('B', 9), GPIO_FUNCTION(4) },
     { I2C2, GPIO('B', 10), GPIO('B', 11), GPIO_FUNCTION(4) },
+    { I2C3, GPIO('A', 8), GPIO('C', 9), GPIO_FUNCTION(4) },
 #endif
 };
 
@@ -139,67 +155,112 @@ i2c_setup(uint32_t bus, uint32_t rate, uint8_t addr)
         gpio_peripheral(ii->sda_pin, ii->function | GPIO_OPEN_DRAIN, 1);
 
         // Set 100Khz frequency and enable
-        i2c->TIMINGR = ((0xB << I2C_TIMINGR_PRESC_Pos)
-                        | (0x13 << I2C_TIMINGR_SCLL_Pos)
-                        | (0xF << I2C_TIMINGR_SCLH_Pos)
-                        | (0x2 << I2C_TIMINGR_SDADEL_Pos)
-                        | (0x4 << I2C_TIMINGR_SCLDEL_Pos));
+        uint32_t nom_i2c_clock = 12000000; // 12mhz internal clock (83.3ns tick)
+        uint32_t scll = 60; // 60 * 83.3ns = 5us
+        uint32_t sclh = 48; // 48 * 83.3ns = 4us
+        uint32_t sdadel = 6; // 6 * 83.3ns = 500ns
+        uint32_t scldel = 15; // 15 * 83.3ns = 1250ns
+        // Clamp the rate to 400Khz
+        if (rate >= 400000) {
+            scll = 15; // 15 * 83.3ns = 1250ns
+            sclh = 6; // 6 * 83.3 = 500ns
+            sdadel = 4; // 4 * 83.3 = 333ns
+            scldel = 6; // 6 * 83.3 = 500ns
+        }
+
+        uint32_t pclk = get_pclock_frequency((uint32_t)i2c);
+        uint32_t presc = DIV_ROUND_UP(pclk, nom_i2c_clock);
+        i2c->TIMINGR = (((presc - 1) << I2C_TIMINGR_PRESC_Pos)
+                        | ((scll - 1) << I2C_TIMINGR_SCLL_Pos)
+                        | ((sclh - 1) << I2C_TIMINGR_SCLH_Pos)
+                        | (sdadel << I2C_TIMINGR_SDADEL_Pos)
+                        | ((scldel - 1) << I2C_TIMINGR_SCLDEL_Pos));
         i2c->CR1 = I2C_CR1_PE;
     }
 
     return (struct i2c_config){ .i2c=i2c, .addr=addr<<1 };
 }
 
-static uint32_t
+static int
 i2c_wait(I2C_TypeDef *i2c, uint32_t set, uint32_t timeout)
 {
     for (;;) {
         uint32_t isr = i2c->ISR;
         if (isr & set)
-            return isr;
+            return I2C_BUS_SUCCESS;
+        if (isr & I2C_ISR_NACKF) {
+            i2c->ICR = I2C_ICR_NACKCF;
+            return I2C_BUS_NACK;
+        }
         if (!timer_is_before(timer_read_time(), timeout))
-            shutdown("i2c timeout");
+            return I2C_BUS_TIMEOUT;
     }
 }
 
-void
+int
 i2c_write(struct i2c_config config, uint8_t write_len, uint8_t *write)
 {
     I2C_TypeDef *i2c = config.i2c;
     uint32_t timeout = timer_read_time() + timer_from_us(5000);
+    int ret = I2C_BUS_SUCCESS;
+    uint8_t *write_orig = write;
 
     // Send start and address
     i2c->CR2 = (I2C_CR2_START | config.addr | (write_len << I2C_CR2_NBYTES_Pos)
                 | I2C_CR2_AUTOEND);
     while (write_len--) {
-        i2c_wait(i2c, I2C_ISR_TXIS, timeout);
+        ret = i2c_wait(i2c, I2C_ISR_TXIS, timeout);
+        if (ret != I2C_BUS_SUCCESS)
+            goto abrt;
         i2c->TXDR = *write++;
     }
-    i2c_wait(i2c, I2C_ISR_TXE, timeout);
+    return i2c_wait(i2c, I2C_ISR_TXE, timeout);
+abrt:
+    if (write == write_orig && ret == I2C_BUS_NACK)
+        ret = I2C_BUS_START_NACK;
+    i2c->CR2 |= I2C_CR2_STOP;
+    return ret;
 }
 
-void
+int
 i2c_read(struct i2c_config config, uint8_t reg_len, uint8_t *reg
          , uint8_t read_len, uint8_t *read)
 {
     I2C_TypeDef *i2c = config.i2c;
     uint32_t timeout = timer_read_time() + timer_from_us(5000);
+    int ret = I2C_BUS_SUCCESS;
+    uint8_t *write_orig = reg;
+    uint8_t *read_orig = read;
 
-    // Send start, address, reg
-    i2c->CR2 = (I2C_CR2_START | config.addr |
-               (reg_len << I2C_CR2_NBYTES_Pos));
-    while (reg_len--) {
-        i2c_wait(i2c, I2C_ISR_TXIS, timeout);
-        i2c->TXDR = *reg++;
+    if (reg_len) {
+        // Send start, address, reg
+        i2c->CR2 = (I2C_CR2_START | config.addr |
+                   (reg_len << I2C_CR2_NBYTES_Pos));
+        while (reg_len--) {
+            ret = i2c_wait(i2c, I2C_ISR_TXIS, timeout);
+            if (ret != I2C_BUS_SUCCESS)
+                goto abrt;
+            i2c->TXDR = *reg++;
+        }
+        i2c_wait(i2c, I2C_ISR_TC, timeout);
     }
-    i2c_wait(i2c, I2C_ISR_TC, timeout);
 
     // send restart, read data
     i2c->CR2 = (I2C_CR2_START | I2C_CR2_RD_WRN | config.addr |
                (read_len << I2C_CR2_NBYTES_Pos) | I2C_CR2_AUTOEND);
     while (read_len--) {
-        i2c_wait(i2c, I2C_ISR_RXNE, timeout);
+        ret = i2c_wait(i2c, I2C_ISR_RXNE, timeout);
+        if (ret != I2C_BUS_SUCCESS)
+            goto abrt_read;
         *read++ = i2c->RXDR;
     }
-    i2c_wait(i2c, I2C_ISR_STOPF, timeout);
+    return i2c_wait(i2c, I2C_ISR_STOPF, timeout);
+abrt_read:
+    if (read == read_orig && ret == I2C_BUS_NACK)
+        ret = I2C_BUS_START_READ_NACK;
+abrt:
+    if (reg == write_orig && ret == I2C_BUS_NACK)
+        ret = I2C_BUS_START_NACK;
+    i2c->CR2 |= I2C_CR2_STOP;
+    return ret;
 }

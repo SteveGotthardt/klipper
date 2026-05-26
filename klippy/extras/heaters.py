@@ -1,6 +1,6 @@
 # Tracking of PWM controlled heaters and their temperature control
 #
-# Copyright (C) 2016-2020  Kevin O'Connor <kevin@koconnor.net>
+# Copyright (C) 2016-2025  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, logging, threading
@@ -11,14 +11,18 @@ import os, logging, threading
 ######################################################################
 
 KELVIN_TO_CELSIUS = -273.15
-MAX_HEAT_TIME = 5.0
+MAX_HEAT_TIME = 3.0
 AMBIENT_TEMP = 25.
 PID_PARAM_BASE = 255.
+MAX_MAINTHREAD_TIME = 5.0
+QUELL_STALE_TIME = 7.0
+MIN_PWM_CHANGE_RATIO = 0.05
 
 class Heater:
     def __init__(self, config, sensor):
         self.printer = config.get_printer()
-        self.name = config.get_name().split()[-1]
+        self.name = config.get_name()
+        self.short_name = short_name = self.name.split()[-1]
         # Setup sensor
         self.sensor = sensor
         self.min_temp = config.getfloat('min_temp', minval=KELVIN_TO_CELSIUS)
@@ -34,8 +38,10 @@ class Heater:
                          is not None)
         self.can_extrude = self.min_extrude_temp <= 0. or is_fileoutput
         self.max_power = config.getfloat('max_power', 1., above=0., maxval=1.)
+        self.min_pwm_change = self.max_power * MIN_PWM_CHANGE_RATIO
         self.smooth_time = config.getfloat('smooth_time', 1., above=0.)
         self.inv_smooth_time = 1. / self.smooth_time
+        self.verify_mainthread_time = -999.
         self.lock = threading.Lock()
         self.last_temp = self.smoothed_temp = self.target_temp = 0.
         self.last_temp_time = 0.
@@ -55,21 +61,24 @@ class Heater:
         self.mcu_pwm.setup_cycle_time(pwm_cycle_time)
         self.mcu_pwm.setup_max_duration(MAX_HEAT_TIME)
         # Load additional modules
-        self.printer.load_object(config, "verify_heater %s" % (self.name,))
+        self.printer.load_object(config, "verify_heater %s" % (short_name,))
         self.printer.load_object(config, "pid_calibrate")
         gcode = self.printer.lookup_object("gcode")
         gcode.register_mux_command("SET_HEATER_TEMPERATURE", "HEATER",
-                                   self.name, self.cmd_SET_HEATER_TEMPERATURE,
+                                   short_name, self.cmd_SET_HEATER_TEMPERATURE,
                                    desc=self.cmd_SET_HEATER_TEMPERATURE_help)
+        self.printer.register_event_handler("klippy:shutdown",
+                                            self._handle_shutdown)
     def set_pwm(self, read_time, value):
-        if self.target_temp <= 0.:
+        if self.target_temp <= 0. or read_time > self.verify_mainthread_time:
             value = 0.
         if ((read_time < self.next_pwm_time or not self.last_pwm_value)
-            and abs(value - self.last_pwm_value) < 0.05):
+            and abs(value - self.last_pwm_value) < self.min_pwm_change):
             # No significant change in value - can suppress update
             return
         pwm_time = read_time + self.pwm_delay
-        self.next_pwm_time = pwm_time + 0.75 * MAX_HEAT_TIME
+        self.next_pwm_time = (pwm_time + MAX_HEAT_TIME
+                              - (3. * self.pwm_delay + 0.001))
         self.last_pwm_value = value
         self.mcu_pwm.set_pwm(pwm_time, value)
         #logging.debug("%s: pwm=%.3f@%.3f (from %.3f@%.3f [%.3f])",
@@ -86,7 +95,11 @@ class Heater:
             self.smoothed_temp += temp_diff * adj_time
             self.can_extrude = (self.smoothed_temp >= self.min_extrude_temp)
         #logging.debug("temp: %.3f %f = %f", read_time, temp)
+    def _handle_shutdown(self):
+        self.verify_mainthread_time = -999.
     # External commands
+    def get_name(self):
+        return self.name
     def get_pwm_delay(self):
         return self.pwm_delay
     def get_max_power(self):
@@ -101,9 +114,10 @@ class Heater:
         with self.lock:
             self.target_temp = degrees
     def get_temp(self, eventtime):
-        print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime) - 5.
+        est_print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime)
+        quell_time = est_print_time - QUELL_STALE_TIME
         with self.lock:
-            if self.last_temp_time < print_time:
+            if self.last_temp_time < quell_time:
                 return 0., self.target_temp
             return self.smoothed_temp, self.target_temp
     def check_busy(self, eventtime):
@@ -121,13 +135,16 @@ class Heater:
             target_temp = max(self.min_temp, min(self.max_temp, target_temp))
         self.target_temp = target_temp
     def stats(self, eventtime):
+        est_print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime)
+        if not self.printer.is_shutdown():
+            self.verify_mainthread_time = est_print_time + MAX_MAINTHREAD_TIME
         with self.lock:
             target_temp = self.target_temp
             last_temp = self.last_temp
             last_pwm_value = self.last_pwm_value
         is_active = target_temp or last_temp > 50.
         return is_active, '%s: target=%.0f temp=%.1f pwm=%.3f' % (
-            self.name, target_temp, last_temp, last_pwm_value)
+            self.short_name, target_temp, last_temp, last_pwm_value)
     def get_status(self, eventtime):
         with self.lock:
             target_temp = self.target_temp
@@ -240,8 +257,6 @@ class PrinterHeaters:
         gcode.register_command("TURN_OFF_HEATERS", self.cmd_TURN_OFF_HEATERS,
                                desc=self.cmd_TURN_OFF_HEATERS_help)
         gcode.register_command("M105", self.cmd_M105, when_not_ready=True)
-        gcode.register_command("TEMPERATURE_WAIT", self.cmd_TEMPERATURE_WAIT,
-                               desc=self.cmd_TEMPERATURE_WAIT_help)
     def load_config(self, config):
         self.have_load_sensors = True
         # Load default temperature sensors
@@ -251,7 +266,8 @@ class PrinterHeaters:
         try:
             dconfig = pconfig.read_config(filename)
         except Exception:
-            raise config.config_error("Cannot load config '%s'" % (filename,))
+            logging.exception("Unable to load temperature_sensors.cfg")
+            raise config.error("Cannot load config '%s'" % (filename,))
         for c in dconfig.get_prefix_sections(''):
             self.printer.load_object(dconfig, c.get_name())
     def add_sensor_factory(self, sensor_type, sensor_factory):
@@ -281,11 +297,14 @@ class PrinterHeaters:
         if sensor_type not in self.sensor_factories:
             raise self.printer.config_error(
                 "Unknown temperature sensor '%s'" % (sensor_type,))
-        if sensor_type == 'NTC 100K beta 3950':
-            config.deprecate('sensor_type', 'NTC 100K beta 3950')
         return self.sensor_factories[sensor_type](config)
     def register_sensor(self, config, psensor, gcode_id=None):
-        self.available_sensors.append(config.get_name())
+        sensor_name = config.get_name()
+        self.available_sensors.append(sensor_name)
+        gcode = self.printer.lookup_object('gcode')
+        gcode.register_mux_command('TEMPERATURE_WAIT', "SENSOR", sensor_name,
+                                   self.cmd_TEMPERATURE_WAIT,
+                                   desc=self.cmd_TEMPERATURE_WAIT_help)
         if gcode_id is None:
             gcode_id = config.get('gcode_id', None)
             if gcode_id is None:
@@ -347,8 +366,6 @@ class PrinterHeaters:
     cmd_TEMPERATURE_WAIT_help = "Wait for a temperature on a sensor"
     def cmd_TEMPERATURE_WAIT(self, gcmd):
         sensor_name = gcmd.get('SENSOR')
-        if sensor_name not in self.available_sensors:
-            raise gcmd.error("Unknown sensor '%s'" % (sensor_name,))
         min_temp = gcmd.get_float('MINIMUM', float('-inf'))
         max_temp = gcmd.get_float('MAXIMUM', float('inf'), above=min_temp)
         if min_temp == float('-inf') and max_temp == float('inf'):

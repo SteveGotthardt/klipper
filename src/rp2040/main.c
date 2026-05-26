@@ -15,6 +15,32 @@
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
 
+#if CONFIG_MACH_RP2040
+#include "hardware/structs/vreg_and_chip_reset.h" // vreg_and_chip_reset_hw
+#else
+#include "hardware/structs/ticks.h" // ticks_hw
+#endif
+
+
+/****************************************************************
+ * Ram IRQ vector table
+ ****************************************************************/
+
+// Copy vector table to ram and activate it
+static void
+enable_ram_vectortable(void)
+{
+    // Symbols created by rpxxxx_link.lds.S linker script
+    extern uint32_t _ram_vectortable_start, _ram_vectortable_end;
+    extern uint32_t _text_vectortable_start;
+
+    uint32_t count = (&_ram_vectortable_end - &_ram_vectortable_start) * 4;
+    __builtin_memcpy(&_ram_vectortable_start, &_text_vectortable_start, count);
+    barrier();
+
+    SCB->VTOR = (uint32_t)&_ram_vectortable_start;
+}
+
 
 /****************************************************************
  * Bootloader
@@ -25,8 +51,7 @@ bootloader_request(void)
 {
     watchdog_hw->ctrl = 0;
     try_request_canboot();
-    // Use the bootrom-provided code to reset into BOOTSEL mode
-    reset_to_usb_boot(0, 0);
+    bootrom_reboot_usb_bootloader();
 }
 
 
@@ -35,8 +60,21 @@ bootloader_request(void)
  ****************************************************************/
 
 #define FREQ_XOSC 12000000
-#define FREQ_SYS 125000000
+#define FREQ_SYS (CONFIG_MACH_RP2040 ? 200000000 : CONFIG_CLOCK_FREQ)
+#define FBDIV (FREQ_SYS == 200000000 ? 100 : 125)
 #define FREQ_USB 48000000
+
+void set_vsel(void)
+{
+    // Set internal voltage regulator output to 1.15V on rp2040
+#if CONFIG_MACH_RP2040
+    uint32_t cval = vreg_and_chip_reset_hw->vreg;
+    uint32_t vref = VREG_AND_CHIP_RESET_VREG_VSEL_RESET + 1;
+    cval &= ~VREG_AND_CHIP_RESET_VREG_VSEL_BITS;
+    cval |= vref << VREG_AND_CHIP_RESET_VREG_VSEL_LSB;
+    vreg_and_chip_reset_hw->vreg = cval;
+#endif
+}
 
 void
 enable_pclock(uint32_t reset_bit)
@@ -59,13 +97,15 @@ get_pclock_frequency(uint32_t reset_bit)
     return FREQ_SYS;
 }
 
+// PLL (rp2xxx) input: 5 to 100Mhz, vco: 750 to 1600Mhz
+
 static void
 xosc_setup(void)
 {
     xosc_hw->startup = DIV_ROUND_UP(FREQ_XOSC, 1000 * 256); // 1ms
     xosc_hw->ctrl = (XOSC_CTRL_FREQ_RANGE_VALUE_1_15MHZ
                      | (XOSC_CTRL_ENABLE_VALUE_ENABLE << XOSC_CTRL_ENABLE_LSB));
-    while(!(xosc_hw->status & XOSC_STATUS_STABLE_BITS))
+    while (!(xosc_hw->status & XOSC_STATUS_STABLE_BITS))
         ;
 }
 
@@ -73,7 +113,11 @@ static void
 pll_setup(pll_hw_t *pll, uint32_t mul, uint32_t postdiv)
 {
     // Setup pll
-    uint32_t refdiv = 1, fbdiv = mul, postdiv2 = 2, postdiv1 = postdiv/postdiv2;
+    uint32_t refdiv = 1, fbdiv = mul, postdiv2 = 1, postdiv1 = postdiv;
+    while (postdiv1 > 0x07) {
+        postdiv1 >>= 1;
+        postdiv2 <<= 1;
+    }
     pll->cs = refdiv;
     pll->fbdiv_int = fbdiv;
     pll->pwr = PLL_PWR_DSMPD_BITS | PLL_PWR_POSTDIVPD_BITS;
@@ -114,7 +158,8 @@ clock_setup(void)
     // Setup xosc, pll_sys, and switch clk_sys
     xosc_setup();
     enable_pclock(RESETS_RESET_PLL_SYS_BITS);
-    pll_setup(pll_sys_hw, 125, 125*FREQ_XOSC/FREQ_SYS);
+    set_vsel();
+    pll_setup(pll_sys_hw, FBDIV, FBDIV * FREQ_XOSC / FREQ_SYS);
     csys->ctrl = 0;
     csys->div = 1<<CLOCKS_CLK_SYS_DIV_INT_LSB;
     csys->ctrl = CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX;
@@ -123,7 +168,7 @@ clock_setup(void)
 
     // Setup pll_usb
     enable_pclock(RESETS_RESET_PLL_USB_BITS);
-    pll_setup(pll_usb_hw, 40, 40*FREQ_XOSC/FREQ_USB);
+    pll_setup(pll_usb_hw, 80, 80*FREQ_XOSC/FREQ_USB);
 
     // Setup peripheral clocks
     clk_aux_setup(clk_peri, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS);
@@ -135,7 +180,12 @@ clock_setup(void)
     cref->ctrl = CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC;
     while (!(cref->selected & (1 << 2)))
         ;
+#if CONFIG_MACH_RP2040
     watchdog_hw->tick = 1 | WATCHDOG_TICK_ENABLE_BITS;
+#else
+    ticks_hw->ticks[TICK_WATCHDOG].cycles = 1;
+    ticks_hw->ticks[TICK_WATCHDOG].ctrl = TICKS_WATCHDOG_CTRL_ENABLE_BITS;
+#endif
 
     // Enable GPIO control
     enable_pclock(RESETS_RESET_IO_BANK0_BITS | RESETS_RESET_PADS_BANK0_BITS);
@@ -145,6 +195,7 @@ clock_setup(void)
 void
 armcm_main(void)
 {
+    enable_ram_vectortable();
     clock_setup();
     sched_main();
 }

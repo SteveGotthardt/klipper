@@ -97,6 +97,8 @@ gpio_clock_enable(GPIO_TypeDef *regs)
     RCC->IOPENR;
 }
 
+// PLL (g0) input: 2.66 to 16Mhz, vco: 96 to 344Mhz, output: 12 to 64Mhz
+
 #if !CONFIG_STM32_CLOCK_REF_INTERNAL
 DECL_CONSTANT_STR("RESERVE_PINS_crystal", "PF0,PF1");
 #endif
@@ -162,6 +164,8 @@ bootloader_request(void)
 void
 armcm_main(void)
 {
+    // Disable internal pull-down resistors on UCPDx CCx pins
+    SYSCFG->CFGR1 |= (SYSCFG_CFGR1_UCPD1_STROBE | SYSCFG_CFGR1_UCPD2_STROBE);
     SCB->VTOR = (uint32_t)VectorTable;
 
     // Reset clock registers (in case bootloader has changed them)

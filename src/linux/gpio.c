@@ -10,7 +10,7 @@
 #include <string.h> // memset
 #include <sys/ioctl.h> // ioctl
 #include <unistd.h> // close
-#include </usr/include/linux/gpio.h> // GPIOHANDLE_REQUEST_OUTPUT
+#include <linux/gpio.h> // GPIOHANDLE_REQUEST_OUTPUT
 #include "command.h" // shutdown
 #include "gpio.h" // gpio_out_write
 #include "internal.h" // report_errno
@@ -68,6 +68,7 @@ get_chip_fd(uint8_t chipId)
 struct gpio_out
 gpio_out_setup(uint32_t pin, uint8_t val)
 {
+    if (pin >= ARRAY_SIZE(gpio_lines)) shutdown("Not an output pin");
     struct gpio_line *line = &gpio_lines[pin];
     line->offset = GPIO2PIN(pin);
     line->chipid = GPIO2PORT(pin);
@@ -132,6 +133,7 @@ gpio_out_toggle(struct gpio_out g)
 struct gpio_in
 gpio_in_setup(uint32_t pin, int8_t pull_up)
 {
+    if (pin >= ARRAY_SIZE(gpio_lines)) shutdown("Not an input pin");
     struct gpio_line *line = &gpio_lines[pin];
     line->offset = GPIO2PIN(pin);
     line->chipid = GPIO2PORT(pin);
