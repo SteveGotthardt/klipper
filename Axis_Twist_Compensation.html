@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="img/favicon.ico">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.3">
+      <meta name="generator" content="mkdocs-1.2.4, mkdocs-material-8.1.3">
     
     
       
@@ -46,8 +46,8 @@
   
 
 
-  <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-138371409-1","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){var e;this.value&&(e=document.location.pathname,ga("send","pageview",e+"?q="+this.value))}),"undefined"!=typeof location$&&location$.subscribe(function(e){ga("send","pageview",e.pathname)})})</script>
-  <script async src="https://www.google-analytics.com/analytics.js"></script>
+  <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-VEN1PGNQL4"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&gtag("event","search",{search_term:this.value})}),"undefined"!=typeof location$&&location$.subscribe(function(e){gtag("config","G-VEN1PGNQL4",{page_path:e.pathname})})})</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEN1PGNQL4"></script>
 
 
     
@@ -410,10 +410,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Installation" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="Installation.html" class="md-nav__link">
         Installation
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="OctoPrint.html" class="md-nav__link">
+        OctoPrint for Klipper
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -663,6 +710,26 @@
   <a href="#overview-of-compensation-usage" class="md-nav__link">
     Overview of compensation usage
   </a>
+  
+    <nav class="md-nav" aria-label="Overview of compensation usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage-x-axis-calibration" class="md-nav__link">
+    Basic Usage: X-Axis Calibration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#for-y-axis-calibration" class="md-nav__link">
+    For Y-Axis Calibration
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1271,6 +1338,34 @@
 
             
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Eddy_Probe.html" class="md-nav__link">
+        Eddy Current Inductive probe
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Load_Cell.html" class="md-nav__link">
+        Load Cells
+      </a>
+    </li>
+  
+
+            
+          
         </ul>
       </nav>
     </li>
@@ -1323,6 +1418,26 @@
     Overview of compensation usage
   </a>
   
+    <nav class="md-nav" aria-label="Overview of compensation usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage-x-axis-calibration" class="md-nav__link">
+    Basic Usage: X-Axis Calibration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#for-y-axis-calibration" class="md-nav__link">
+    For Y-Axis Calibration
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1350,7 +1465,7 @@
 
 
 <h1 id="axis-twist-compensation">Axis Twist Compensation<a class="headerlink" href="#axis-twist-compensation" title="Permanent link">&para;</a></h1>
-<p>This document describes the [axis_twist_compensation] module.</p>
+<p>This document describes the <code>[axis_twist_compensation]</code> module.</p>
 <p>Some printers may have a small twist in their X rail which can skew the results
 of a probe attached to the X carriage.
 This is common in printers with designs like the Prusa MK3, Sovol SV06 etc and is
@@ -1370,29 +1485,56 @@ try to probe the bed without attaching the probe if you use it.</p>
 <p><strong>Tip:</strong> Make sure the <a href="Config_Reference.html#probe">probe X and Y offsets</a> are
 correctly set as they greatly influence calibration.</p>
 </blockquote>
+<h3 id="basic-usage-x-axis-calibration">Basic Usage: X-Axis Calibration<a class="headerlink" href="#basic-usage-x-axis-calibration" title="Permanent link">&para;</a></h3>
 <ol>
-<li>After setting up the [axis_twist_compensation] module,
-perform <code>AXIS_TWIST_COMPENSATION_CALIBRATE</code>
-* The calibration wizard will prompt you to measure the probe Z offset at a few
-points along the bed
-* The calibration defaults to 3 points but you can use the option
-<code>SAMPLE_COUNT=</code> to use a different number.</li>
-<li><a href="Probe_Calibrate.html#calibrating-probe-z-offset">Adjust your Z offset</a></li>
-<li>Perform automatic/probe-based bed tramming operations, such as
-<a href="G-Codes.html#screws_tilt_adjust">Screws Tilt Adjust</a>,
-<a href="G-Codes.html#z_tilt_adjust">Z Tilt Adjust</a> etc</li>
-<li>Home all axis, then perform a <a href="Bed_Mesh.html">Bed Mesh</a> if required</li>
-<li>Perform a test print, followed by any
-<a href="Axis_Twist_Compensation.html#fine-tuning">fine-tuning</a> as desired</li>
+<li>After setting up the <code>[axis_twist_compensation]</code> module, run:</li>
 </ol>
+<div class="highlight"><pre><span></span><code>AXIS_TWIST_COMPENSATION_CALIBRATE
+</code></pre></div>
+
+<p>This command will calibrate the X-axis by default.
+- The calibration wizard will prompt you to measure the probe Z offset at
+    several points along the bed.
+- By default, the calibration uses 3 points, but you can specify a different
+    number with the option:
+<code>SAMPLE_COUNT=&lt;value&gt;</code></p>
+<ol>
+<li>
+<p><strong>Adjust Your Z Offset:</strong>
+After completing the calibration, be sure to
+<a href="Probe_Calibrate.html#calibrating-probe-z-offset">adjust your Z offset</a>.</p>
+</li>
+<li>
+<p><strong>Perform Bed Leveling Operations:</strong>
+Use probe-based operations as needed, such as:
+- <a href="G-Codes.html#screws_tilt_adjust">Screws Tilt Adjust</a>
+- <a href="G-Codes.html#z_tilt_adjust">Z Tilt Adjust</a></p>
+</li>
+<li>
+<p><strong>Finalize the Setup:</strong></p>
+<ul>
+<li>Home all axes, and perform a <a href="Bed_Mesh.html">Bed Mesh</a> if necessary.</li>
+<li>Run a test print, followed by any
+  <a href="Axis_Twist_Compensation.html#fine-tuning">fine-tuning</a>
+  if needed.</li>
+</ul>
+</li>
+</ol>
+<h3 id="for-y-axis-calibration">For Y-Axis Calibration<a class="headerlink" href="#for-y-axis-calibration" title="Permanent link">&para;</a></h3>
+<p>The calibration process for the Y-axis is similar to the X-axis. To calibrate
+the Y-axis, use:</p>
+<div class="highlight"><pre><span></span><code>AXIS_TWIST_COMPENSATION_CALIBRATE AXIS=Y
+</code></pre></div>
+
+<p>This will guide you through the same measuring process as for the X-axis.</p>
 <blockquote>
 <p><strong>Tip:</strong> Bed temperature and nozzle temperature and size do not seem to have
 an influence to the calibration process.</p>
 </blockquote>
 <h2 id="axis_twist_compensation-setup-and-commands">[axis_twist_compensation] setup and commands<a class="headerlink" href="#axis_twist_compensation-setup-and-commands" title="Permanent link">&para;</a></h2>
-<p>Configuration options for [axis_twist_compensation] can be found in the
+<p>Configuration options for <code>[axis_twist_compensation]</code> can be found in the
 <a href="Config_Reference.html#axis_twist_compensation">Configuration Reference</a>.</p>
-<p>Commands for [axis_twist_compensation] can be found in the
+<p>Commands for <code>[axis_twist_compensation]</code> can be found in the
 <a href="G-Codes.html#axis_twist_compensation">G-Codes Reference</a></p>
 
               

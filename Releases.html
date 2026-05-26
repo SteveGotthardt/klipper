@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="img/favicon.ico">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.3">
+      <meta name="generator" content="mkdocs-1.2.4, mkdocs-material-8.1.3">
     
     
       
@@ -46,8 +46,8 @@
   
 
 
-  <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-138371409-1","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){var e;this.value&&(e=document.location.pathname,ga("send","pageview",e+"?q="+this.value))}),"undefined"!=typeof location$&&location$.subscribe(function(e){ga("send","pageview",e.pathname)})})</script>
-  <script async src="https://www.google-analytics.com/analytics.js"></script>
+  <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-VEN1PGNQL4"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&gtag("event","search",{search_term:this.value})}),"undefined"!=typeof location$&&location$.subscribe(function(e){gtag("config","G-VEN1PGNQL4",{page_path:e.pathname})})})</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEN1PGNQL4"></script>
 
 
     
@@ -372,6 +372,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#klipper-0130" class="md-nav__link">
+    Klipper 0.13.0
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#klipper-0120" class="md-nav__link">
     Klipper 0.12.0
   </a>
@@ -532,10 +539,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Installation" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="Installation.html" class="md-nav__link">
         Installation
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="OctoPrint.html" class="md-nav__link">
+        OctoPrint for Klipper
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1343,6 +1397,34 @@
 
             
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Eddy_Probe.html" class="md-nav__link">
+        Eddy Current Inductive probe
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Load_Cell.html" class="md-nav__link">
+        Load Cells
+      </a>
+    </li>
+  
+
+            
+          
         </ul>
       </nav>
     </li>
@@ -1389,6 +1471,13 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#klipper-0130" class="md-nav__link">
+    Klipper 0.13.0
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#klipper-0120" class="md-nav__link">
@@ -1500,6 +1589,39 @@
 <h1 id="releases">Releases<a class="headerlink" href="#releases" title="Permanent link">&para;</a></h1>
 <p>History of Klipper releases. Please see
 <a href="Installation.html">installation</a> for information on installing Klipper.</p>
+<h2 id="klipper-0130">Klipper 0.13.0<a class="headerlink" href="#klipper-0130" title="Permanent link">&para;</a></h2>
+<p>Available on 20250411. Major changes in this release:</p>
+<ul>
+<li>New "sweeping vibrations" resonance testing mechanism for input
+  shaper.</li>
+<li>Fans and GPIO pins can now be assigned a formula (via Jinja2
+  "templates").</li>
+<li>The bed_mesh code now supports "adaptive bed mesh". The area probed
+  can be adjusted for the size of the print.</li>
+<li>A new <code>minimum_cruise_ratio</code> kinematic parameter has been added (it
+  replaces the previous <code>max_accel_to_decel</code> parameter).</li>
+<li>Several new sensors added:<ul>
+<li>Support for ldc1612 "eddy" current sensors. This includes probing
+  support, fast "scan" probing, and temperature calibration.</li>
+<li>New support for "load cell" measurements. Support for connecting
+  these load cells to hx71x and ads1220 ADC sensors.</li>
+<li>Support for BMP180, BMP388, and SHT3x temperature sensors. Support
+  for measuring temperature with ADS1x1x ADC chips.</li>
+<li>New lis3dh and icm20948 accelerometer support.</li>
+<li>Support for mt6816 and mt6826s "hall angle" sensors.</li>
+</ul>
+</li>
+<li>New micro-controller improvements:<ul>
+<li>New support for rp2350 micro-controllers.</li>
+<li>Existing rp2040 chips now run at 200MHz (up from 125Mhz).</li>
+<li>The micro-controller code can now define many more commands (up to
+  16384 from 128).</li>
+</ul>
+</li>
+<li>Other modules added: aip31068_spi, canbus_stats, error_mcu,
+  garbage_collection, pwm_cycle_time, pwm_tool, garbage_collection.</li>
+<li>Several bug fixes and code cleanups.</li>
+</ul>
 <h2 id="klipper-0120">Klipper 0.12.0<a class="headerlink" href="#klipper-0120" title="Permanent link">&para;</a></h2>
 <p>Available on 20231110. Major changes in this release:</p>
 <ul>

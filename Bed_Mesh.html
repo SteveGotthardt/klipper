@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="img/favicon.ico">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.3">
+      <meta name="generator" content="mkdocs-1.2.4, mkdocs-material-8.1.3">
     
     
       
@@ -46,8 +46,8 @@
   
 
 
-  <script>window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga("create","UA-138371409-1","auto"),ga("set","anonymizeIp",!0),ga("send","pageview"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){var e;this.value&&(e=document.location.pathname,ga("send","pageview",e+"?q="+this.value))}),"undefined"!=typeof location$&&location$.subscribe(function(e){ga("send","pageview",e.pathname)})})</script>
-  <script async src="https://www.google-analytics.com/analytics.js"></script>
+  <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-VEN1PGNQL4"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&gtag("event","search",{search_term:this.value})}),"undefined"!=typeof location$&&location$.subscribe(function(e){gtag("config","G-VEN1PGNQL4",{page_path:e.pathname})})})</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEN1PGNQL4"></script>
 
 
     
@@ -410,10 +410,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7_1" type="checkbox" id="__nav_7_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_7_1">
+          Installation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Installation" data-md-level="2">
+        <label class="md-nav__title" for="__nav_7_1">
+          <span class="md-nav__icon md-icon"></span>
+          Installation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="Installation.html" class="md-nav__link">
         Installation
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="OctoPrint.html" class="md-nav__link">
+        OctoPrint for Klipper
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -692,12 +739,18 @@
     Configuring the zero reference position
   </a>
   
-    <nav class="md-nav" aria-label="Configuring the zero reference position">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#the-deprecated-relative_reference_index" class="md-nav__link">
-    The deprecated relative_reference_index
+  <a href="#faulty-regions" class="md-nav__link">
+    Faulty Regions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adaptive-meshes" class="md-nav__link">
+    Adaptive Meshes
   </a>
   
 </li>
@@ -706,10 +759,25 @@
     </nav>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-scans" class="md-nav__link">
+    Surface Scans
+  </a>
+  
+    <nav class="md-nav" aria-label="Surface Scans">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#faulty-regions" class="md-nav__link">
-    Faulty Regions
+  <a href="#scan-height" class="md-nav__link">
+    Scan Height
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapid-continuous-scanning" class="md-nav__link">
+    Rapid (Continuous) Scanning
   </a>
   
 </li>
@@ -771,6 +839,67 @@
           <li class="md-nav__item">
   <a href="#apply-xy-offsets" class="md-nav__link">
     Apply X/Y offsets
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bed-mesh-webhooks-apis" class="md-nav__link">
+    Bed Mesh Webhooks APIs
+  </a>
+  
+    <nav class="md-nav" aria-label="Bed Mesh Webhooks APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dumping-mesh-data" class="md-nav__link">
+    Dumping mesh data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualization-and-analysis" class="md-nav__link">
+    Visualization and analysis
+  </a>
+  
+    <nav class="md-nav" aria-label="Visualization and analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-requisites" class="md-nav__link">
+    Pre-requisites
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plotting-mesh-data" class="md-nav__link">
+    Plotting Mesh data
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bed-mesh-analysis" class="md-nav__link">
+    Bed Mesh Analysis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#save-mesh-data-to-a-file" class="md-nav__link">
+    Save mesh data to a file
   </a>
   
 </li>
@@ -1406,6 +1535,34 @@
 
             
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Eddy_Probe.html" class="md-nav__link">
+        Eddy Current Inductive probe
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="Load_Cell.html" class="md-nav__link">
+        Load Cells
+      </a>
+    </li>
+  
+
+            
+          
         </ul>
       </nav>
     </li>
@@ -1514,12 +1671,18 @@
     Configuring the zero reference position
   </a>
   
-    <nav class="md-nav" aria-label="Configuring the zero reference position">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#the-deprecated-relative_reference_index" class="md-nav__link">
-    The deprecated relative_reference_index
+  <a href="#faulty-regions" class="md-nav__link">
+    Faulty Regions
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adaptive-meshes" class="md-nav__link">
+    Adaptive Meshes
   </a>
   
 </li>
@@ -1528,10 +1691,25 @@
     </nav>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#surface-scans" class="md-nav__link">
+    Surface Scans
+  </a>
+  
+    <nav class="md-nav" aria-label="Surface Scans">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#faulty-regions" class="md-nav__link">
-    Faulty Regions
+  <a href="#scan-height" class="md-nav__link">
+    Scan Height
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapid-continuous-scanning" class="md-nav__link">
+    Rapid (Continuous) Scanning
   </a>
   
 </li>
@@ -1602,6 +1780,67 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#bed-mesh-webhooks-apis" class="md-nav__link">
+    Bed Mesh Webhooks APIs
+  </a>
+  
+    <nav class="md-nav" aria-label="Bed Mesh Webhooks APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dumping-mesh-data" class="md-nav__link">
+    Dumping mesh data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualization-and-analysis" class="md-nav__link">
+    Visualization and analysis
+  </a>
+  
+    <nav class="md-nav" aria-label="Visualization and analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-requisites" class="md-nav__link">
+    Pre-requisites
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plotting-mesh-data" class="md-nav__link">
+    Plotting Mesh data
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bed-mesh-analysis" class="md-nav__link">
+    Bed Mesh Analysis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#save-mesh-data-to-a-file" class="md-nav__link">
+    Save mesh data to a file
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1663,10 +1902,9 @@ probe_count: 5, 3
 <ul>
 <li><code>mesh_max: 240, 198</code><br>
   <em>Required</em><br>
-  The probed coordinate farthest farthest from the origin.  This is not
-  necessarily the last point probed, as the probing process occurs in a
-  zig-zag fashion.  As with <code>mesh_min</code>, this coordinate is relative to
-  the probe's location.</li>
+  The probed coordinate farthest from the origin.  This is not necessarily
+  the last point probed, as the probing process occurs in a zig-zag fashion.
+  As with <code>mesh_min</code>, this coordinate is relative to the probe's location.</li>
 </ul>
 <ul>
 <li><code>probe_count: 5, 3</code><br>
@@ -1755,7 +1993,7 @@ bicubic_tension: 0.2
   integer pair, and also may be specified a single integer that is applied
   to both axes.  In this example there are 4 segments along the X axis
   and 2 segments along the Y axis.  This evaluates to 8 interpolated
-  points along X, 6 interpolated points along Y, which results in a 13x8
+  points along X, 6 interpolated points along Y, which results in a 13x9
   mesh.  Note that if mesh_pps is set to 0 then mesh interpolation is
   disabled and the probed matrix will be sampled directly.</li>
 </ul>
@@ -1878,9 +2116,9 @@ by heat or interference.  This can make calculating the probe's z-offset
 challenging, particularly at different bed temperatures.  As such, some
 printers use an endstop for homing the Z axis and a probe for calibrating the
 mesh. In this configuration it is possible offset the mesh so that the (X, Y)
-<code>reference position</code> applies zero adjustment.  The <code>reference postion</code> should
+<code>reference position</code> applies zero adjustment.  The <code>reference position</code> should
 be the location on the bed where a
-<a href="./Manual_Level#calibrating-a-z-endstop">Z_ENDSTOP_CALIBRATE</a>
+<a href="Manual_Level.html#calibrating-a-z-endstop">Z_ENDSTOP_CALIBRATE</a>
 paper test is performed.  The bed_mesh module provides the
 <code>zero_reference_position</code> option for specifying this coordinate:</p>
 <div class="highlight"><pre><span></span><code>[bed_mesh]
@@ -1903,26 +2141,6 @@ probe_count: 5, 3
   z-offset.  Note that this coordinate must NOT be in a location specified as
   a <code>faulty_region</code> if a probe is necessary.</li>
 </ul>
-<h4 id="the-deprecated-relative_reference_index">The deprecated relative_reference_index<a class="headerlink" href="#the-deprecated-relative_reference_index" title="Permanent link">&para;</a></h4>
-<p>Existing configurations using the <code>relative_reference_index</code> option must be
-updated to use the <code>zero_reference_position</code>.  The response to the
-<a href="#output">BED_MESH_OUTPUT PGP=1</a> gcode command will include the (X, Y)
-coordinate associated with the index;  this position may be used as the value for
-the <code>zero_reference_position</code>. The output will look similar to the following:</p>
-<div class="highlight"><pre><span></span><code>// bed_mesh: generated points
-// Index | Tool Adjusted | Probe
-// 0 | (1.0, 1.0) | (24.0, 6.0)
-// 1 | (36.7, 1.0) | (59.7, 6.0)
-// 2 | (72.3, 1.0) | (95.3, 6.0)
-// 3 | (108.0, 1.0) | (131.0, 6.0)
-... (additional generated points)
-// bed_mesh: relative_reference_index 24 is (131.5, 108.0)
-</code></pre></div>
-
-<p><em>Note:  The above output is also printed in <code>klippy.log</code> during initialization.</em></p>
-<p>Using the example above we see that the <code>relative_reference_index</code> is
-printed along with its coordinate.  Thus the <code>zero_reference_position</code>
-is <code>131.5, 108</code>.</p>
 <h3 id="faulty-regions">Faulty Regions<a class="headerlink" href="#faulty-regions" title="Permanent link">&para;</a></h3>
 <p>It is possible for some areas of a bed to report inaccurate results when
 probing due to a "fault" at specific locations.  The best example of this
@@ -1968,17 +2186,125 @@ a generated point lies within a faulty region.  The regions shown match those
 in the sample config above.  The replacement points and their coordinates
 are identified in green.</p>
 <p><img alt="bedmesh_interpolated" src="img/bedmesh_faulty_regions.svg" /></p>
+<h3 id="adaptive-meshes">Adaptive Meshes<a class="headerlink" href="#adaptive-meshes" title="Permanent link">&para;</a></h3>
+<p>Adaptive bed meshing is a way to speed up the bed mesh generation by only probing
+the area of the bed used by the objects being printed. When used, the method will
+automatically adjust the mesh parameters based on the area occupied by the defined
+print objects.</p>
+<p>The adapted mesh area will be computed from the area defined by the boundaries of all
+the defined print objects so it covers every object, including any margins defined in
+the configuration. After the area is computed, the number of probe points will be
+scaled down based on the ratio of the default mesh area and the adapted mesh area. To
+illustrate this consider the following example:</p>
+<p>For a 150mmx150mm bed with <code>mesh_min</code> set to <code>25,25</code> and <code>mesh_max</code> set to <code>125,125</code>,
+the default mesh area is a 100mmx100mm square. An adapted mesh area of <code>50,50</code>
+means a ratio of <code>0.5x0.5</code> between the adapted area and default mesh area.</p>
+<p>If the <code>bed_mesh</code> configuration specified <code>probe_count</code> as <code>7x7</code>, the adapted bed
+mesh will use 4x4 probe points (7 * 0.5 rounded up).</p>
+<p><img alt="adaptive_bedmesh" src="img/adaptive_bed_mesh.svg" /></p>
+<div class="highlight"><pre><span></span><code>[bed_mesh]
+speed: 120
+horizontal_move_z: 5
+mesh_min: 35, 6
+mesh_max: 240, 198
+probe_count: 5, 3
+adaptive_margin: 5
+</code></pre></div>
+
+<ul>
+<li>
+<p><code>adaptive_margin</code> <br>
+  <em>Default Value: 0</em> <br>
+  Margin (in mm) to add around the area of the bed used by the defined objects. The diagram
+  below shows the adapted bed mesh area with an <code>adaptive_margin</code> of 5mm. The adapted mesh
+  area (area in green) is computed as the used bed area (area in blue) plus the defined margin.</p>
+<p><img alt="adaptive_bedmesh_margin" src="img/adaptive_bed_mesh_margin.svg" /></p>
+</li>
+</ul>
+<p>By nature, adaptive bed meshes use the objects defined by the Gcode file being printed.
+Therefore, it is expected that each Gcode file will generate a mesh that probes a different
+area of the print bed. Therefore, adapted bed meshes should not be re-used. The expectation
+is that a new mesh will be generated for each print if adaptive meshing is used.</p>
+<p>It is also important to consider that adaptive bed meshing is best used on machines that can
+normally probe the entire bed and achieve a maximum variance less than or equal to 1 layer
+height. Machines with mechanical issues that a full bed mesh normally compensates for may
+have undesirable results when attempting print moves <strong>outside</strong> of the probed area. If a
+full bed mesh has a variance greater than 1 layer height, caution must be taken when using
+adaptive bed meshes and attempting print moves outside of the meshed area.</p>
+<h2 id="surface-scans">Surface Scans<a class="headerlink" href="#surface-scans" title="Permanent link">&para;</a></h2>
+<p>Some probes, such as the <a href="Eddy_Probe.html">Eddy Current Probe</a>, are capable of
+"scanning" the surface of the bed.  That is, these probes can sample a mesh
+without lifting the tool between samples.  To activate scanning mode, the
+<code>METHOD=scan</code> or <code>METHOD=rapid_scan</code> probe parameter should be passed in the
+<code>BED_MESH_CALIBRATE</code> gcode command.</p>
+<h3 id="scan-height">Scan Height<a class="headerlink" href="#scan-height" title="Permanent link">&para;</a></h3>
+<p>The scan height is set by the <code>horizontal_move_z</code> option in <code>[bed_mesh]</code>.  In
+addition it can be supplied with the <code>BED_MESH_CALIBRATE</code> gcode command via the
+<code>HORIZONTAL_MOVE_Z</code> parameter.</p>
+<p>The scan height must be sufficiently low to avoid scanning errors.  Typically
+a height of 2mm (ie: <code>HORIZONTAL_MOVE_Z=2</code>) should work well, presuming that the
+probe is mounted correctly.</p>
+<p>It should be noted that if the probe is more than 4mm above the surface then the
+results will be invalid.  Thus, scanning is not possible on beds with severe
+surface deviation or beds with extreme tilt that hasn't been corrected.</p>
+<h3 id="rapid-continuous-scanning">Rapid (Continuous) Scanning<a class="headerlink" href="#rapid-continuous-scanning" title="Permanent link">&para;</a></h3>
+<p>When performing a <code>rapid_scan</code> one should keep in mind that the results will
+have some amount of error.  This error should be low enough to be useful on
+large print areas with reasonably thick layer heights.  Some probes may be
+more prone to error than others.</p>
+<p>It is not recommended that rapid mode be used to scan a "dense" mesh.  Some of
+the error introduced during a rapid scan may be gaussian noise from the sensor,
+and a dense mesh will reflect this noise (ie: there will be peaks and valleys).</p>
+<p>Bed Mesh will attempt to optimize the travel path to provide the best possible
+result based on the configuration.  This includes avoiding faulty regions
+when collecting samples and "overshooting" the mesh when changing direction.
+This overshoot improves sampling at the edges of a mesh, however it requires
+that the mesh be configured in a way that allows the tool to travel outside
+of the mesh.</p>
+<div class="highlight"><pre><span></span><code>[bed_mesh]
+speed: 120
+horizontal_move_z: 5
+mesh_min: 35, 6
+mesh_max: 240, 198
+probe_count: 5
+scan_overshoot: 8
+</code></pre></div>
+
+<ul>
+<li><code>scan_overshoot</code>
+  <em>Default Value: 0 (disabled)</em><br>
+  The maximum amount of travel (in mm) available outside of the mesh.
+  For rectangular beds this applies to travel on the X axis, and for round beds
+  it applies to the entire radius.  The tool must be able to travel the amount
+  specified outside of the mesh.  This value is used to optimize the travel
+  path when performing a "rapid scan".  The minimum value that may be specified
+  is 1.  The default is no overshoot.</li>
+</ul>
+<p>If no scan overshoot is configured then travel path optimization will not
+be applied to changes in direction.</p>
 <h2 id="bed-mesh-gcodes">Bed Mesh Gcodes<a class="headerlink" href="#bed-mesh-gcodes" title="Permanent link">&para;</a></h2>
 <h3 id="calibration">Calibration<a class="headerlink" href="#calibration" title="Permanent link">&para;</a></h3>
-<p><code>BED_MESH_CALIBRATE PROFILE=&lt;name&gt; METHOD=[manual | automatic] [&lt;probe_parameter&gt;=&lt;value&gt;]
- [&lt;mesh_parameter&gt;=&lt;value&gt;]</code><br>
+<p><code>BED_MESH_CALIBRATE PROFILE=&lt;name&gt; METHOD=[manual | automatic | scan | rapid_scan] &lt;br&gt;
+[&lt;probe_parameter&gt;=&lt;value&gt;] [&lt;mesh_parameter&gt;=&lt;value&gt;] [ADAPTIVE=[0|1] &lt;br&gt;
+[ADAPTIVE_MARGIN=&lt;value&gt;]</code><br>
 <em>Default Profile:  default</em><br>
-<em>Default Method:  automatic if a probe is detected, otherwise manual</em></p>
+<em>Default Method:  automatic if a probe is detected, otherwise manual</em> <br>
+<em>Default Adaptive: 0</em> <br>
+<em>Default Adaptive Margin: 0</em></p>
 <p>Initiates the probing procedure for Bed Mesh Calibration.</p>
-<p>The mesh will be saved into a profile specified by the <code>PROFILE</code> parameter,
-or <code>default</code> if unspecified. If <code>METHOD=manual</code> is selected then manual probing
-will occur.  When switching between automatic and manual probing the generated
-mesh points will automatically be adjusted.</p>
+<p>The mesh will be immediately ready to use when the command completes and saved
+into a profile specified by the <code>PROFILE</code> parameter,
+or <code>default</code> if unspecified. The <code>METHOD</code> parameter takes one of the following
+values:</p>
+<ul>
+<li><code>METHOD=manual</code>: enables manual probing using the nozzle and the paper test</li>
+<li><code>METHOD=automatic</code>:  Automatic (standard) probing.  This is the default.</li>
+<li><code>METHOD=scan</code>: Enables surface scanning.  The tool will pause over each position
+                 to collect a sample.</li>
+<li><code>METHOD=rapid_scan</code>: Enables continuous surface scanning.</li>
+</ul>
+<p>XY positions are automatically adjusted to include the X and/or Y offsets
+when a probing method other than <code>manual</code> is selected.</p>
 <p>It is possible to specify mesh parameters to modify the probed area.  The
 following parameters are available:</p>
 <ul>
@@ -1995,7 +2321,10 @@ following parameters are available:</p>
 </ul>
 </li>
 <li>All beds:<ul>
+<li><code>MESH_PPS</code></li>
 <li><code>ALGORITHM</code></li>
+<li><code>ADAPTIVE</code></li>
+<li><code>ADAPTIVE_MARGIN</code></li>
 </ul>
 </li>
 </ul>
@@ -2021,6 +2350,9 @@ allowing the user to determine when a profile is loaded.  If a user wishes to
 load the <code>default</code> profile it is recommended to add
 <code>BED_MESH_PROFILE LOAD=default</code> to either their <code>START_PRINT</code> macro or their
 slicer's "Start G-Code" configuration, whichever is applicable.</p>
+<p>Note that this is not required if a new mesh is generated with
+<code>BED_MESH_CALIBRATE</code> in the <code>START_PRINT</code> macro or the slicer's "Start G-Code"
+and may produce unexpected results, especially with adaptive meshing.</p>
 <p>Alternatively the old behavior of loading a profile at startup can be
 restored with a <code>[delayed_gcode]</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="k">[delayed_gcode bed_mesh_init]</span>
@@ -2061,13 +2393,183 @@ probing the "Probe" points will refer to both the tool and nozzle locations.</p>
 <p><code>BED_MESH_CLEAR</code></p>
 <p>This gcode may be used to clear the internal mesh state.</p>
 <h3 id="apply-xy-offsets">Apply X/Y offsets<a class="headerlink" href="#apply-xy-offsets" title="Permanent link">&para;</a></h3>
-<p><code>BED_MESH_OFFSET [X=&lt;value&gt;] [Y=&lt;value&gt;]</code></p>
+<p><code>BED_MESH_OFFSET [X=&lt;value&gt;] [Y=&lt;value&gt;] [ZFADE=&lt;value&gt;]</code></p>
 <p>This is useful for printers with multiple independent extruders, as an offset
 is necessary to produce correct Z adjustment after a tool change.  Offsets
 should be specified relative to the primary extruder.  That is, a positive
 X offset should be specified if the secondary extruder is mounted to the
-right of the primary extruder, and a positive Y offset should be specified
-if the secondary extruder is mounted "behind" the primary extruder.</p>
+right of the primary extruder, a positive Y offset should be specified
+if the secondary extruder is mounted "behind" the primary extruder, and
+a positive ZFADE offset should be specified if the secondary extruder's
+nozzle is above the primary extruder's.</p>
+<p>Note that a ZFADE offset does <em>NOT</em> directly apply additional adjustment.  It
+is intended to compensate for a <code>gcode offset</code> when <a href="#mesh-fade">mesh fade</a>
+is enabled.  For example, if a secondary extruder is higher than the primary
+and needs a negative gcode offset, ie: <code>SET_GCODE_OFFSET Z=-.2</code>, it can be
+accounted for in <code>bed_mesh</code> with <code>BED_MESH_OFFSET ZFADE=.2</code>.</p>
+<h2 id="bed-mesh-webhooks-apis">Bed Mesh Webhooks APIs<a class="headerlink" href="#bed-mesh-webhooks-apis" title="Permanent link">&para;</a></h2>
+<h3 id="dumping-mesh-data">Dumping mesh data<a class="headerlink" href="#dumping-mesh-data" title="Permanent link">&para;</a></h3>
+<p><code>{"id": 123, "method": "bed_mesh/dump_mesh"}</code></p>
+<p>Dumps the configuration and state for the current mesh and all
+saved profiles.</p>
+<p>The <code>dump_mesh</code> endpoint takes one optional parameter, <code>mesh_args</code>.
+This parameter must be an object, where the keys and values are
+parameters available to <a href="#bed_mesh_calibrate">BED_MESH_CALIBRATE</a>.
+This will update the mesh configuration and probe points using the
+supplied parameters prior to returning the result.   It is recommended
+to omit mesh parameters unless it is desired to visualize the probe points
+and/or travel path before performing <code>BED_MESH_CALIBRATE</code>.</p>
+<h2 id="visualization-and-analysis">Visualization and analysis<a class="headerlink" href="#visualization-and-analysis" title="Permanent link">&para;</a></h2>
+<p>Most users will likely find that the visualizers included with
+applications such as Mainsail, Fluidd, and Octoprint are sufficient
+for basic analysis.  However, Klipper's <code>scripts</code> folder contains the
+<code>graph_mesh.py</code> script that may be used to perform additional
+visualizations and more detailed analysis, particularly useful
+for debugging hardware or the results produced by <code>bed_mesh</code>:</p>
+<div class="highlight"><pre><span></span><code>usage: graph_mesh.py [-h] {list,plot,analyze,dump} ...
+
+Graph Bed Mesh Data
+
+positional arguments:
+  {list,plot,analyze,dump}
+    list                List available plot types
+    plot                Plot a specified type
+    analyze             Perform analysis on mesh data
+    dump                Dump API response to json file
+
+options:
+  -h, --help            show this help message and exit
+</code></pre></div>
+
+<h3 id="pre-requisites">Pre-requisites<a class="headerlink" href="#pre-requisites" title="Permanent link">&para;</a></h3>
+<p>Like most graphing tools provided by Klipper, <code>graph_mesh.py</code> requires
+the <code>matplotlib</code> and <code>numpy</code> python dependencies. In addition, connecting
+to Klipper via Moonraker's websocket requires the <code>websockets</code> python
+dependency.  While all visualizations can be output to an <code>svg</code> file, most of
+the visualizations offered by <code>graph_mesh.py</code> are better viewed in live
+preview mode on a desktop class PC. For example, the 3D visualizations may be
+rotated and zoomed in preview mode, and the path visualizations can optionally
+be animated in preview mode.</p>
+<h3 id="plotting-mesh-data">Plotting Mesh data<a class="headerlink" href="#plotting-mesh-data" title="Permanent link">&para;</a></h3>
+<p>The <code>graph_mesh.py</code> tool can plot several types of visualizations.
+Available types can be shown by running <code>graph_mesh.py list</code>:</p>
+<div class="highlight"><pre><span></span><code>graph_mesh.py list
+points    Plot original generated points
+path      Plot probe travel path
+rapid     Plot rapid scan travel path
+probedz   Plot probed Z values
+meshz     Plot mesh Z values
+overlay   Plots the current probed mesh overlaid with a profile
+delta     Plots the delta between current probed mesh and a profile
+</code></pre></div>
+
+<p>Several options are available when plotting visualizations:</p>
+<div class="highlight"><pre><span></span><code>usage: graph_mesh.py plot [-h] [-a] [-s] [-p PROFILE_NAME] [-o OUTPUT] &lt;plot type&gt; &lt;input&gt;
+
+positional arguments:
+  &lt;plot type&gt;           Type of data to graph
+  &lt;input&gt;               Path/url to Klipper Socket or path to json file
+
+options:
+  -h, --help            show this help message and exit
+  -a, --animate         Animate paths in live preview
+  -s, --scale-plot      Use axis limits reported by Klipper to scale plot X/Y
+  -p PROFILE_NAME, --profile-name PROFILE_NAME
+                        Optional name of a profile to plot for &#39;probedz&#39;
+  -o OUTPUT, --output OUTPUT
+                        Output file path
+</code></pre></div>
+
+<p>Below is a description of each argument:</p>
+<ul>
+<li><code>plot type</code>: A required positional argument designating the type of
+  visualization to generate.  Must be one of the types output by the
+  <code>graph_mesh.py list</code> command.</li>
+<li><code>input</code>: A required positional argument containing a path or url
+  to the input source.  This must be one of the following:<ul>
+<li>A path to Klipper's Unix Domain Socket</li>
+<li>A url to an instance of Moonraker</li>
+<li>A path to a json file produced by <code>graph_mesh.py dump &lt;input&gt;</code></li>
+</ul>
+</li>
+<li><code>-a</code>:  Optional animation for the <code>path</code> and <code>rapid</code> visualization types.
+  Animations only apply to a live preview.</li>
+<li><code>-s</code>:  Optionally scales a plot using the <code>axis_minimum</code> and <code>axis_maximum</code>
+  values reported by Klipper's <code>toolhead</code> object when the dump file was
+  generated.</li>
+<li><code>-p</code>: A profile name that may be specified when generating the
+  <code>probedz</code> 3D mesh visualization.  When generating an <code>overlay</code> or
+  <code>delta</code> visualization this argument must be provided.</li>
+<li><code>-o</code>: An optional file path indicating that the script should save the
+  visualization to this location rather than run in preview mode.  Images
+  are saved in <code>svg</code> format.</li>
+</ul>
+<p>For example, to plot an animated rapid path, connecting via Klipper's unix
+socket:</p>
+<div class="highlight"><pre><span></span><code>graph_mesh.py plot -a rapid ~/printer_data/comms/klippy.sock
+</code></pre></div>
+
+<p>Or to plot a 3d visualization of the mesh, connecting via Moonraker:</p>
+<div class="highlight"><pre><span></span><code>graph_mesh.py plot meshz http://my-printer.local
+</code></pre></div>
+
+<h3 id="bed-mesh-analysis">Bed Mesh Analysis<a class="headerlink" href="#bed-mesh-analysis" title="Permanent link">&para;</a></h3>
+<p>The <code>graph_mesh.py</code> tool may also be used to perform an analysis on the
+data provided by the <a href="#dumping-mesh-data">bed_mesh/dump_mesh</a> API:</p>
+<div class="highlight"><pre><span></span><code>graph_mesh.py analyze &lt;input&gt;
+</code></pre></div>
+
+<p>As with the <code>plot</code> command, the <code>&lt;input&gt;</code> must be a path to Klipper's
+unix socket, a URL to an instance of Moonraker, or a path to a json file
+generated by the dump command.</p>
+<p>To begin, the analysis will perform various checks on the points and
+probe paths generated by <code>bed_mesh</code> at the time of the dump.  This
+includes the following:</p>
+<ul>
+<li>The number of probe points generated, without any additions</li>
+<li>The number of probe points generated including any points generated
+  as the result faulty regions and/or a configured zero reference position.</li>
+<li>The number of probe points generated when performing a rapid scan.</li>
+<li>The total number of moves generated for a rapid scan.</li>
+<li>A validation that the probe points generated for a rapid scan are
+  identical to the probe points generated for a standard probing procedure.</li>
+<li>A "backtracking" check for both the standard probe path and a rapid scan
+  path.  Backtracking can be defined as moving to the same position more than
+  once during the probing procedure.  Backtracking should never occur during a
+  standard probe.  Faulty regions <em>can</em> result in backtracking during a rapid
+  scan in an attempt to avoid entering a faulty region when approaching or
+  leaving a probe location, however should never occur otherwise.</li>
+</ul>
+<p>Next each probed mesh present in the dump will by analyzed, beginning with
+the mesh loaded at the time of the dump (if present) and followed by any
+saved profiles.  The following data is extracted:</p>
+<ul>
+<li>Mesh shape (Min X,Y, Max X,Y Probe Count)</li>
+<li>Mesh Z range, (Minimum Z, Maximum Z)</li>
+<li>Mean Z value in the mesh</li>
+<li>Standard Deviation of the Z values in the Mesh</li>
+</ul>
+<p>In addition to the above, a delta analysis is performed between meshes
+with the same shape, reporting the following:</p>
+<ul>
+<li>The range of the delta between to meshes (Minimum and Maximum)</li>
+<li>The mean delta</li>
+<li>Standard Deviation of the delta</li>
+<li>The absolute maximum difference</li>
+<li>The absolute mean</li>
+</ul>
+<h3 id="save-mesh-data-to-a-file">Save mesh data to a file<a class="headerlink" href="#save-mesh-data-to-a-file" title="Permanent link">&para;</a></h3>
+<p>The <code>dump</code> command may be used to save the response to a file which
+can be shared for analysis when troubleshooting:</p>
+<div class="highlight"><pre><span></span><code>graph_mesh.py dump -o &lt;output file name&gt; &lt;input&gt;
+</code></pre></div>
+
+<p>The <code>&lt;input&gt;</code> should be a path to Klipper's unix socket or
+a URL to an instance of Moonraker.  The <code>-o</code> option may be used to
+specify the path to the output file.  If omitted, the file will be
+saved in the working directory, with a file name in the following
+format:</p>
+<p><code>klipper-bedmesh-{year}{month}{day}{hour}{minute}{second}.json</code></p>
 
               
             </article>
